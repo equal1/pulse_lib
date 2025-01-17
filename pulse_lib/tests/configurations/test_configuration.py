@@ -154,7 +154,6 @@ class Context:
                     SD1.SD_SyncModes.SYNC_NONE,
                     0))
 
-
     def init_pulselib(self, n_gates=0, n_qubits=0, n_markers=0,
                       n_sensors=0, rf_sources=False,
                       virtual_gates=False, finish=True,
@@ -287,6 +286,7 @@ class Context:
                                                   iq_out=iq_out)
             if backend == 'Qblox':
                 pulse.add_channel_delay(sensor, 152)
+                pulse.set_digitizer_nco_propagation_delay(sensor, 200)
 
         if n_sensors > 0 and backend == 'Tektronix_5014':
             self._add_marker('M_M4i')
@@ -445,17 +445,17 @@ class Context:
         if not repeat:
             repeat = 1
         for ch_name, values in data.items():
-            l = []
+            lv = []
             for value in values:
                 if isinstance(value, Number):
-                    l.append([value])
+                    lv.append([value])
                 else:
-                    l.append(value)
-            ch_data = np.tile(np.concatenate(l), repeat)
+                    lv.append(value)
+            ch_data = np.tile(np.concatenate(lv), repeat)
             try:
                 self._set_mock_data(ch_name, ch_data)
             except Exception:
-                logger.error("Couldn't set mock data for {ch_name}", exc_info=True)
+                logger.error(f"Couldn't set mock data for {ch_name}", exc_info=True)
 
     def _set_mock_data(self, ch_name, ch_data, scaling=1.0):
         ch_data = np.require(ch_data, dtype=float)

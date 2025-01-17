@@ -908,8 +908,8 @@ class UploadAggregator:
         seq = AcquisitionSequenceBuilder(channel_name, self.program[channel_name], n_rep,
                                          nco_frequency=nco_freq,
                                          rf_source=digitizer_channel.rf_source)
-        # NCO delay is 4 ns less than delay between output and input
-        seq.nco_delay = digitizer_channel.delay - 4
+        if digitizer_channel.qblox_nco_propagation_delay:
+            seq.nco_prop_delay = digitizer_channel.qblox_nco_propagation_delay
 
         if digitizer_channel.rf_source is not None:
             # relative offset of rf_source w.r.t. digitizer. Align to keep constant relative offset.

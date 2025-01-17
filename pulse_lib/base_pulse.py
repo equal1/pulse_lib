@@ -222,6 +222,19 @@ class pulselib:
         '''
         self.digitizer_channels[channel_name].hw_input_channel = hw_channel_number
 
+    def set_digitizer_nco_propagation_delay(self, channel_name: str, delay: int):
+        '''
+        Sets nco propagation delay for Qblox. This is the time from modulation
+        of the signal till demodulation of the input signal.
+        Setting this delay reduces the phase shifting during frequency sweeps.
+        Expected delay is 148 + ~4 ns/m wiring.
+
+        Args:
+            channel_name: name of the channel.
+            delay (int): propagation delay in ns. Range 96 to 245.
+        '''
+        self.digitizer_channels[channel_name].qblox_nco_propagation_delay = delay
+
     def set_digitizer_rf_source(self, channel_name, output,
                                 mode='pulsed',
                                 amplitude=0,

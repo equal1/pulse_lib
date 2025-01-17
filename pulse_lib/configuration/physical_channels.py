@@ -1,4 +1,3 @@
-from typing import Tuple, Optional, Union, List
 from dataclasses import dataclass
 
 
@@ -7,19 +6,19 @@ class awg_channel:
     name: str
     awg_name: str
     channel_number: int
-    amplitude: Optional[float] = None
+    amplitude: float | None = None
     delay: float = 0  # ns
     attenuation: float = 1.0
-    compensation_limits: Tuple[float, float] = (0, 0)
-    bias_T_RC_time: Optional[float] = None
-    offset: Optional[float] = None  # mV
+    compensation_limits: tuple[float, float] = (0, 0)
+    bias_T_RC_time: float | None = None
+    offset: float | None = None  # mV
 
 
 @dataclass
 class marker_channel:
     name: str
     module_name: str  # could be AWG or digitizer
-    channel_number: Union[int, Tuple[int, int]]
+    channel_number: int | tuple[int, int]
     '''
     Keysight: 0 = trigger out channel, 1...4 = analogue channel
     Tektronix: tuple = (channel,marker number), int = analogue channel
@@ -30,7 +29,7 @@ class marker_channel:
     amplitude: float = 1000
     invert: bool = False
     delay: float = 0  # ns
-    sequencer_name: Optional[str] = None
+    sequencer_name: str | None = None
     '''
     Qblox only: name of qubit, awg or digitizer channel to use for sequencing
     '''
@@ -64,7 +63,7 @@ class resonator_rf_source:
     The resonator will be driven with the frequency specified for the digitizer
     channel and dependent on the mode can be enabled synchronous with acquisitions.
     '''
-    output: Union[str, Tuple[str, int], Tuple[str, List[int]]]
+    output: str | tuple[str, int] | tuple[str, list[int]]
     '''
     output: one of the following:
         (str) name of marker channel.
@@ -121,7 +120,7 @@ class digitizer_channel:
     '''
     name: str
     module_name: str
-    channel_numbers: List[int]
+    channel_numbers: list[int]
     '''
     Channel number to *read* the data from.
     For M3102A this is the number of the output buffer of the digitizer.
@@ -139,11 +138,11 @@ class digitizer_channel:
     '''
     Input consists of 2 channels, the demodulated I and Q.
     '''
-    frequency: Union[None, float] = None
+    frequency: float | None = None
     '''
     demodulation frequency.
     '''
-    rf_source: resonator_rf_source = None
+    rf_source: resonator_rf_source | None = None
     '''
     Optional rf_source to generate the resonator drive signal.
     '''
@@ -151,9 +150,16 @@ class digitizer_channel:
     '''
     Channel delay in ns.
     '''
-    hw_input_channel: int = None
+    hw_input_channel: int | None = None
     '''
     For M3102A this is the physical input channel of the digitizer.
+    '''
+    qblox_nco_propagation_delay: int | None = None
+    '''
+    Optional nco propagation delay for Qblox.
+    This is the time between modulation and demodulation.
+    Range: 96 to 245 [ns].
+    Expected delay is 148 + ~4 ns/m wiring.
     '''
 
     def __post_init__(self):

@@ -25,7 +25,7 @@ def iround(value):
 
 
 class PulsarConfig:
-    ALIGNMENT = 4 # pulses must be aligned on 4 ns boundaries
+    ALIGNMENT = 4  # pulses must be aligned on 4 ns boundaries
     # 8000 samples memory, max 256 waves.
     EMIT_LENGTH1 = 100
     EMIT_LENGTH2 = 200
@@ -69,6 +69,7 @@ class MarkerEvent:
     every bit represents a physical marker output.
     '''
 
+
 class SequenceBuilderBase:
     verbose = False
 
@@ -85,7 +86,7 @@ class SequenceBuilderBase:
         try:
             index = self.sinewaves.index(waveform)
             waveid = f'sine{index}'
-        except:
+        except ValueError:
             index = len(self.sinewaves)
             self.sinewaves.append(waveform)
             waveid = f'sine{index}'
@@ -97,7 +98,7 @@ class SequenceBuilderBase:
         try:
             index = self.sinewaves.index(waveform)
             waveids = (f'iq{index}I', f'iq{index}Q')
-        except:
+        except ValueError:
             index = len(self.sinewaves)
             self.sinewaves.append(waveform)
             waveids = (f'iq{index}I', f'iq{index}Q')
@@ -156,7 +157,7 @@ class SequenceBuilderBase:
             marker = self.markers[i]
             self._set_markers(marker.time, marker.enabled_markers)
         if self.verbose:
-            wavelengths = {name:len(wave.data) for name, wave in self.seq._waves._waves.items()}
+            wavelengths = {name: len(wave.data) for name, wave in self.seq._waves._waves.items()}
             logger.info(f"waveforms: {wavelengths} ({sum(wavelengths.values())})")
 
 
@@ -170,6 +171,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
     Markers are inserted in between pulses.
     Bias-T voltage compensation is added to block and ramp.
     '''
+
     def __init__(self, name, sequencer, rc_time=None):
         super().__init__(name, sequencer)
         self.rc_time = rc_time
@@ -383,7 +385,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
             n = t_end - t_start
             if n == 0:
                 return
-            data  = np.linspace(v_start, v_end, n, endpoint=False)
+            data = np.linspace(v_start, v_end, n, endpoint=False)
             self._add_waveform_data(t_start, data, v_start)
 
         if self._v_start is not None:
@@ -549,7 +551,9 @@ class IQSequenceBuilder(SequenceBuilderBase):
             if abs(waveform.frequency) > 400e6:
                 raise Exception(f'Waveform frequency {waveform.frequency/1e6:5.1f} MHz out of range')
             w = 2 * np.pi * waveform.frequency * 1e-9
-            if isinstance(waveform.phmod, Number) and isinstance(waveform.amod, Number):
+            if (isinstance(waveform.phmod, Number)
+                    and isinstance(waveform.amod, Number)
+                    and t_end-t_start > 100):
                 self.seq.set_frequency(waveform.frequency + self.nco_frequency, t_offset=t_pulse)
                 phase = waveform.phase + waveform.phmod - (t_start-t_pulse) * w
                 self._add_boxcar_pulse(amplitude * waveform.amod, phase, t_pulse, t_start, t_end)
@@ -581,7 +585,7 @@ class IQSequenceBuilder(SequenceBuilderBase):
                 self._add_boxcar_pulse(amplitude * waveform.amod, phase, t_pulse, t_start, t_end)
             else:
                 # phase is accounted for in ampI, ampQ
-                waveform.phase = np.pi/2 # pi/2, because waveform.render uses sin instead of cos.
+                waveform.phase = np.pi/2  # pi/2, because waveform.render uses sin instead of cos.
                 waveform.phmod = 0
                 ampI = amplitude * np.cos(phase)
                 ampQ = amplitude * np.sin(phase)
@@ -808,11 +812,10 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
         self._pulse_end = -1
         self.offset_rf_ns = 0
         self._nco_prop_delay = 0
-        self._nco_prop_delay_en = False
         if rf_source is not None:
             if isinstance(rf_source.output, str):
                 raise Exception('Qblox RF source must be configured using module name and channel numbers')
-            scaling = 1/(rf_source.attenuation * self.max_output_voltage*1000) # @@@@ Multiply with sqrt(2)
+            scaling = 1/(rf_source.attenuation * self.max_output_voltage*1000)  # @@@@ Multiply with sqrt(2)
             self._rf_amplitude = rf_source.amplitude * scaling
             self._n_out_ch = 1 if isinstance(rf_source.output[1], int) else 2
 
@@ -843,7 +846,7 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
 
     def add_markers(self, markers):
         for marker in markers:
-            t,value = marker
+            t, value = marker
             # offset command sorting time to be before acquire
             self._add_command(t - 0.01,
                               self.seq.set_markers, value, t_offset=t)
@@ -915,7 +918,7 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
             self._add_pulse(0, self.t_end)
         self._add_pulse_end()
 
-        self._commands.sort(key=lambda cmd:cmd.time)
+        self._commands.sort(key=lambda cmd: cmd.time)
         for cmd in self._commands:
             cmd.func(*cmd.args, **cmd.kwargs)
         if self._nco_prop_delay_en:
@@ -932,13 +935,13 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
         if self._data_scaling is None:
             self._data_scaling = scaling
         elif isinstance(self._data_scaling, Number):
-            if self._data_scaling == scaling: # @@@ rounding errors...
+            if self._data_scaling == scaling:  # @@@ rounding errors...
                 pass
             else:
-               self._data_scaling = [self._data_scaling] * self.n_triggers
-               self._data_scaling[-n:] = [scaling] * n
+                self._data_scaling = [self._data_scaling] * self.n_triggers
+                self._data_scaling[-n:] = [scaling] * n
         else:
-           self._data_scaling += [scaling] * n
+            self._data_scaling += [scaling] * n
 
     def _add_command(self, t, func, *args, **kwargs):
         self._commands.append(_SeqCommand(t, func, args, kwargs))
