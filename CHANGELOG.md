@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.37] - 2025-01-17
+
+- added NCO propagation delay for Qblox backend.
+
 ## \[1.7.36] - 2024-12-09
 
 - Better rendering of ramp in hres mode for ramp of 1 sample and duration < 1 ns.
