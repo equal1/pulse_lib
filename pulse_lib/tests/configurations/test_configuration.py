@@ -286,7 +286,7 @@ class Context:
                                                   iq_out=iq_out)
             if backend == 'Qblox':
                 pulse.add_channel_delay(sensor, 152)
-                pulse.set_digitizer_nco_propagation_delay(sensor, 200)
+                pulse.set_digitizer_nco_propagation_delay(sensor, 153)
 
         if n_sensors > 0 and backend == 'Tektronix_5014':
             self._add_marker('M_M4i')
