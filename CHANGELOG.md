@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.38] - 2025-01-20
+
+- Qblox: Fix RF continuous mode.
+- Qblox: Fix nco_prop_delay.
+
 ## \[1.7.37] - 2025-01-17
 
 - added NCO propagation delay for Qblox backend.

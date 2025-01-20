@@ -891,8 +891,6 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
             self._add_command(t,
                               self.seq.repeated_acquire, n, t_period, 'default', 'increment', t_offset=t)
         else:
-            # enable nco propagation delay for frequency changing
-            self._nco_prop_delay_en = True
             # enqueue: self.seq.repeated_acquire(n, t_period, 'default', 'increment', t_offset=t)
             self._add_command(t,
                               self.seq.acquire_frequency_sweep, n, t_period, f_sweep[0], f_sweep[1],
@@ -915,16 +913,13 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
         self.seq.add_acquisition_bins('default', num_bins)
 
         if self.rf_source_mode == 'continuous':
-            self._add_pulse(0, self.t_end)
+            self._add_pulse(0, self.t_end, relative_to_acquire=False)
         self._add_pulse_end()
 
         self._commands.sort(key=lambda cmd: cmd.time)
         for cmd in self._commands:
             cmd.func(*cmd.args, **cmd.kwargs)
-        if self._nco_prop_delay_en:
-            self.seq.nco_prop_delay = self.nco_prop_delay
-        else:
-            self.seq.nco_prop_delay = 0
+        self.seq.nco_prop_delay = self.nco_prop_delay
 
     def get_data_scaling(self):
         if isinstance(self._data_scaling, (Number, type(None))):
@@ -946,11 +941,15 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
     def _add_command(self, t, func, *args, **kwargs):
         self._commands.append(_SeqCommand(t, func, args, kwargs))
 
-    def _add_pulse(self, t, duration):
-        t_start = t + self.offset_rf_ns
-        t_end = t + duration
-        t_start -= self.rf_source.startup_time_ns
-        t_end += self.rf_source.prolongation_ns
+    def _add_pulse(self, t, duration, relative_to_acquire: bool = True):
+        if relative_to_acquire:
+            t_start = t + self.offset_rf_ns
+            t_end = t + duration
+            t_start -= self.rf_source.startup_time_ns
+            t_end += self.rf_source.prolongation_ns
+        else:
+            t_start = t
+            t_end = duration
 
         if t_start < 0:
             raise Exception('RF source has negative start time. Acquisition triggered too early. '
