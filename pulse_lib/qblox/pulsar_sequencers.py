@@ -16,6 +16,9 @@ if Version(q1pulse_version) < Version('0.9.0'):
 
 from q1pulse.lang.conditions import CounterFlags
 
+from .filtering import low_pass_window
+from .qblox_config import QbloxConfig
+
 
 logger = logging.getLogger(__name__)
 
@@ -852,7 +855,10 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
                               self.seq.set_markers, value, t_offset=t)
 
     def acquire(self, t, t_integrate):
-        if self.integration_time is not None and self.integration_time != t_integrate:
+        if QbloxConfig.low_pass_filter_enabled:
+            weight = low_pass_window(t_integrate)
+            self.acquire_weighed(t, weight)
+        elif self.integration_time is not None and self.integration_time != t_integrate:
             # use weighed acquisition
             self.acquire_weighed(t, np.ones(int(t_integrate)))
         else:
@@ -876,9 +882,14 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
         weight_id = self._add_weight(weight)
         # enqueue: self.seq.acquire_weighed('default', 'increment', weight_id, t_offset=t)
         self._add_command(t,
-                          self.seq.acquire_weighed, 'default', 'increment', weight_id, t_offset=t)
+                          self.seq.acquire_weighed,
+                          'default', 'increment', weight0=weight_id, t_offset=t)
 
     def repeated_acquire(self, t, t_integrate, n, t_period, f_sweep):
+        if QbloxConfig.low_pass_filter_enabled:
+            weight = low_pass_window(t_integrate)
+            self.repeated_acquire_weighed(t, weight, n, t_period, f_sweep)
+            return
         duration = (n-1) * t_period + t_integrate
         self._update_time(t, duration)
         self.integration_time = t_integrate
@@ -891,12 +902,35 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
             self._add_command(t,
                               self.seq.repeated_acquire, n, t_period, 'default', 'increment', t_offset=t)
         else:
-            # enqueue: self.seq.repeated_acquire(n, t_period, 'default', 'increment', t_offset=t)
+            # enqueue: self.seq.acquire_frequency_sweep(n, t_period, 'default', 'increment', t_offset=t)
             self._add_command(t,
                               self.seq.acquire_frequency_sweep, n, t_period, f_sweep[0], f_sweep[1],
                               'default', 'increment',
                               acq_delay=PulsarConfig.align(self._nco_prop_delay + 4),
                               t_offset=t)
+
+    def repeated_acquire_weighed(self, t, weight, n, t_period, f_sweep):
+        t_integrate = len(weight)
+        duration = (n-1) * t_period + t_integrate
+        self._update_time(t, duration)
+        self.n_triggers += n
+        self._add_scaling(1/np.sum(np.abs(weight)), n)
+        if self.rf_source_mode in ['pulsed', 'shaped']:
+            self._add_pulse(t, duration)
+        weight_id = self._add_weight(weight)
+        if f_sweep is None:
+            # enqueue: self.seq.repeated_acquire_weighed(n, t_period, 'default', 'increment', t_offset=t)
+            self._add_command(t,
+                              self.seq.repeated_acquire_weighed,
+                              n, t_period, 'default', 'increment',
+                              weight0=weight_id, t_offset=t)
+        else:
+            # enqueue: self.seq.repeated_acquire(n, t_period, 'default', 'increment', t_offset=t)
+            self._add_command(t,
+                              self.seq.acquire_frequency_sweep, n, t_period, f_sweep[0], f_sweep[1],
+                              'default', 'increment',
+                              acq_delay=PulsarConfig.align(self._nco_prop_delay + 4),
+                              weight0=weight_id, t_offset=t)
 
     def reset_bin_counter(self, t):
         # enqueue: self.seq.reset_bin_counter('default')
@@ -907,8 +941,8 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
         # note: no need to call super().finalize() because all markers have already been added.
         if not self.n_triggers:
             return
-        if not self._integration_time:
-            raise Exception(f'Measurement time not set for channel {self.name}')
+        # if not self._integration_time:  @@@@
+        #     raise Exception(f'Measurement time not set for channel {self.name}')
         num_bins = self.n_triggers * self.n_repetitions
         self.seq.add_acquisition_bins('default', num_bins)
 
