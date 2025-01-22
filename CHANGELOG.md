@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.39] - 2025-01-22
+
+- Added Qblox low pass filter on acquisition.
+
 ## \[1.7.38] - 2025-01-20
 
 - Qblox: Fix RF continuous mode.

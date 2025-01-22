@@ -78,7 +78,7 @@ class Context:
                 if module.present():
                     rf = 'RF' if module.is_rf_type else ''
                     print(f'  Add {module.name}: {module.module_type}{rf}')
-                    station.add_component(module, module.name)
+                    station.add_component(module, module.name, update_snapshot=False)
                     # try:
                     #     # module.config('trace', True)
                     #     module.config('render_repetitions', True)
@@ -165,7 +165,9 @@ class Context:
         backend = cfg['backend']
         if backend == 'Qblox':
             from pulse_lib.qblox.pulsar_uploader import UploadAggregator
+            from pulse_lib.qblox import QbloxConfig
             UploadAggregator.verbose = True
+            QbloxConfig.low_pass_filter_enabled = True
 
         pulse = pulselib(backend=backend)
         self.pulse = pulse
@@ -302,7 +304,7 @@ class Context:
                     pulse.set_digitizer_rf_source(sensor,
                                                   output=params['output'],
                                                   amplitude=params['amplitude'],
-                                                  mode='pulsed',
+                                                  mode='continuous',
                                                   startup_time_ns=params['startup_time'],
                                                   prolongation_ns=params.get('prolongation_time', 0))
                 else:

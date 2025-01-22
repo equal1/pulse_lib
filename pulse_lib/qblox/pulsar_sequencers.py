@@ -856,9 +856,13 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
 
     def acquire(self, t, t_integrate):
         if QbloxConfig.low_pass_filter_enabled:
-            weight = low_pass_window(t_integrate)
-            self.acquire_weighed(t, weight)
-        elif self.integration_time is not None and self.integration_time != t_integrate:
+            if t_integrate <= 16_000:
+                weight = low_pass_window(t_integrate)
+                self.acquire_weighed(t, weight)
+                return
+            else:
+                warn_once("Low pass filter does not work for measurement time > 16000 ns")
+        if self.integration_time is not None and self.integration_time != t_integrate:
             # use weighed acquisition
             self.acquire_weighed(t, np.ones(int(t_integrate)))
         else:
@@ -887,9 +891,12 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
 
     def repeated_acquire(self, t, t_integrate, n, t_period, f_sweep):
         if QbloxConfig.low_pass_filter_enabled:
-            weight = low_pass_window(t_integrate)
-            self.repeated_acquire_weighed(t, weight, n, t_period, f_sweep)
-            return
+            if t_integrate <= 16_000:
+                weight = low_pass_window(t_integrate)
+                self.repeated_acquire_weighed(t, weight, n, t_period, f_sweep)
+                return
+            else:
+                warn_once("Low pass filter does not work for measurement time > 16000 ns")
         duration = (n-1) * t_period + t_integrate
         self._update_time(t, duration)
         self.integration_time = t_integrate
@@ -941,8 +948,6 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
         # note: no need to call super().finalize() because all markers have already been added.
         if not self.n_triggers:
             return
-        # if not self._integration_time:  @@@@
-        #     raise Exception(f'Measurement time not set for channel {self.name}')
         num_bins = self.n_triggers * self.n_repetitions
         self.seq.add_acquisition_bins('default', num_bins)
 
@@ -1021,3 +1026,13 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
             self._weights.append(weight)
             self.seq.add_weight(weight_id, weight)
         return weight_id
+
+
+def warn_once(message):
+    if not hasattr(warn_once, "warned"):
+        logger.warning(
+            "\n*************************\n"
+            + message
+            + "\n*************************"
+        )
+        warn_once.warned = True
