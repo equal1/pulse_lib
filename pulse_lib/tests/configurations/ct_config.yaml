@@ -9,8 +9,15 @@ local_database:
     database: sds_test
 
 logging:
-    disabled: true
+    # disabled: true
+    max_age: 183
 
 databrowser:
     datasource: local # required value
+    logging:
+        file_level: DEBUG
 
+qt_databrowser:
+    datasource: local # required value
+    logging:
+        file_level: DEBUG

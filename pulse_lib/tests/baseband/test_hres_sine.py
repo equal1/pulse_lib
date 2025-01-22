@@ -1,11 +1,12 @@
 
 from pulse_lib.tests.configurations.test_configuration import context
 
-#%%
+# %%
 import numpy as np
 import matplotlib.pyplot as pt
 
 from pulse_lib.qblox.pulsar_sequencers import PulsarConfig
+
 
 def config_backend(pulse):
     if pulse._backend in ['Keysight', 'Keysight_QS']:
@@ -41,6 +42,7 @@ def test0(t1, t2=10, hres=True):
     context.plot_awgs(sequence, ylim=(-1.10, 1.10), xlim=(5, 30),
                       # analogue_out=True,
                       # analogue_shift=4.0-t1,
+                      create_figure=False,
                       )
 
 
@@ -126,6 +128,7 @@ def test2(t1, hres=True):
     context.plot_awgs(sequence, ylim=(-0.110, 0.110), xlim=(5, 30),
                       # analogue_out=True,
                       # analogue_shift=4.0-t1,
+                      create_figure=False,
                       )
     pt.title(f't1: {t1} t2: {t2}')
 
@@ -177,6 +180,7 @@ def test3(t1, hres=True):
     context.plot_awgs(sequence, ylim=(-0.110, 0.110), xlim=(5, 30),
                       # analogue_out=True,
                       # analogue_shift=4.0-t1,
+                      create_figure=False,
                       )
     pt.title(f't1: {t1} t2: {t2}')
 
@@ -226,31 +230,32 @@ def test4(t1, t2=10, hres=True):
                       )
 
 
-#%%
+# %%
 if __name__ == '__main__':
 
     pt.figure()
     for t1 in [4.0, 4.2, 4.4, 4.6, 4.8]:
         test0(t1, t2=4.5, hres=True)
 
+    pt.figure()
+    for t1 in [4.0, 4.2, 4.4, 4.6, 4.8]:
+        test0(t1, t2=6, hres=True)
+
     for t1 in [4.0, 4.3, 4.49, 4.51, 4.8]:
-        pt.figure()
         test1(t1, hres=False)
-        pt.figure()
         test1(t1)
 
     pt.figure()
     for t1 in [4.0, 4.3, 4.49, 4.51, 4.8]:
-        test2(t1, hres=False)
+        test2(t1, hres=True)
 
     pt.figure()
     for t1 in [4.0, 4.3, 4.49, 4.51, 4.8]:
         test3(t1, hres=False)
+
     pt.figure()
     for t1 in [4.0, 4.3, 4.49, 4.51, 4.8]:
         test3(t1)
 
     for t1 in [4.0, 4.2, 4.4, 4.6, 4.8]:
-        pt.figure()
         test4(t1, t2=4.5, hres=True)
-
