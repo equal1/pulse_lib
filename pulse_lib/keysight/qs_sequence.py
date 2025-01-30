@@ -1,17 +1,19 @@
-from dataclasses import dataclass, field
-from typing import Union, Optional, List
 import math
+from dataclasses import dataclass, field
+
 import numpy as np
+
 
 def iround(value):
     return math.floor(value + 0.5)
 
+
 @dataclass
 class Waveform:
     amplitude: float = 0
-    am_envelope: Union[None, float, np.ndarray] = None
+    am_envelope: float | np.ndarray | None = None
     frequency: float = None
-    pm_envelope: Union[None, float, np.ndarray] = None
+    pm_envelope: float | np.ndarray | None = None
     prephase: float = 0
     postphase: float = 0
     duration: int = 0
@@ -27,7 +29,7 @@ class Waveform:
         try:
             # if pm_envelope is not an array, then this obviously fails.
             return 1 if self.pm_envelope[-1] != 0.0 else 0
-        except:
+        except Exception:
             return 0
 
     @property
@@ -46,23 +48,26 @@ class Waveform:
                 and self.restore_frequency == other.restore_frequency
                 )
 
+
 @dataclass
 class SequenceEntry:
     time_after: int = 0
-    waveform_index: Optional[int] = None
+    waveform_index: int | None = None
+
 
 @dataclass
 class SequenceConditionalEntry:
     time_after: int = 0
     cr: int = 0
-    waveform_indices: List[int] = field(default_factory=list)
+    waveform_indices: list[int] = field(default_factory=list)
+
 
 @dataclass
 class Instruction:
     t_start: int
     ''' start time of instruction. Multiple on 5 ns. '''
-    waveform: Optional[Waveform] = None
-    phase_shift: Optional[float] = None
+    waveform: Waveform | None = None
+    phase_shift: float | None = None
 
     @property
     def t_pulse_end(self):
@@ -88,12 +93,12 @@ class Instruction:
 @dataclass
 class DigitizerSequenceEntry:
     time_after: float = 0
-    t_measure: Optional[float] = None
-    threshold: Optional[float] = None
-    measurement_id: Optional[int] = None
-    name: Optional[str] = None
-    pxi_trigger: Optional[int] = None
-    n_cycles : int = 1
+    t_measure: float | None = None
+    threshold: float | None = None
+    measurement_id: int | None = None
+    name: str | None = None
+    pxi_trigger: int | None = None
+    n_cycles: int = 1
 
 
 class IQSequenceBuilder:
@@ -115,8 +120,8 @@ class IQSequenceBuilder:
 
     def pulse(self, t_pulse, iq_pulse):
         if (iq_pulse.envelope.AM_envelope_function is None
-            and iq_pulse.envelope.PM_envelope_function is None
-            and (iq_pulse.stop - iq_pulse.start > 200)):
+                and iq_pulse.envelope.PM_envelope_function is None
+                and (iq_pulse.stop - iq_pulse.start > 200)):
             # split long pulses in start + stop pulse (Rabi)
             duration = iround(iq_pulse.stop - iq_pulse.start)
             start_wvf, stop_wvf = self._render_waveform_start_stop(iq_pulse)
@@ -245,7 +250,6 @@ class IQSequenceBuilder:
             postphase=postphase)
         return start_wvf, stop_wvf
 
-
     def _add_waveform(self, t, waveform):
         t = iround(t)
         if t < self.time:
@@ -359,7 +363,7 @@ class IQSequenceBuilder:
             return self.sequence[-1]
         return None
 
-    def _get_waveform_index(self, waveform:Waveform):
+    def _get_waveform_index(self, waveform: Waveform):
         try:
             index = self.waveforms.index(waveform)
         except ValueError:
@@ -481,7 +485,7 @@ class AcquisitionSequenceBuilder:
         # set wait time of last instruction
         if self.last_instruction is not None:
             # Max wait time for instruction with waveform ~ 167 ms
-            max_wait =  10*(2**24-1)
+            max_wait = 10*(2**24-1)
             t = min(max_wait, t_wait)
             self.last_instruction.time_after = t
             self.last_instruction = None
@@ -492,7 +496,7 @@ class AcquisitionSequenceBuilder:
             entry = DigitizerSequenceEntry()
             self.sequence.append(entry)
             # Max wait time for instruction without waveform ~ 167 ms
-            max_wait =  10*(2**24-1)
+            max_wait = 10*(2**24-1)
             t = min(max_wait, t_wait)
             entry.time_after = t
             t_wait -= t

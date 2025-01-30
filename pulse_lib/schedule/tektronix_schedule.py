@@ -1,9 +1,9 @@
 import logging
-from typing import List
 
 from .hardware_schedule import HardwareSchedule
 
 logger = logging.getLogger(__name__)
+
 
 class TektronixSchedule(HardwareSchedule):
     verbose = False
@@ -12,15 +12,15 @@ class TektronixSchedule(HardwareSchedule):
         if len(pulselib.digitizers) != 1:
             raise Exception('There should be 1 digitizer in pulselib. '
                             f'Found {len(pulselib.digitizers)} digitizers')
-        self.awgs:List['Tektronix_AWG5014'] = list(pulselib.awg_devices.values())
-        self.awg_is_slave = {awg.name:awg.name in pulselib.awg_sync for awg in self.awgs}
+        self.awgs: list['Tektronix_AWG5014'] = list(pulselib.awg_devices.values())
+        self.awg_is_slave = {awg.name: awg.name in pulselib.awg_sync for awg in self.awgs}
         # print(f'slaves: {self.awg_is_slave}')
         self.digitizer = list(pulselib.digitizers.values())[0]
         self.running = False
         self.schedule_parms = {}
 
     def set_schedule_parameters(self, **kwargs):
-        for key,value in kwargs.items():
+        for key, value in kwargs.items():
             self.schedule_parms[key] = value
 
     def set_configuration(self, params, n_waveforms):
@@ -85,7 +85,6 @@ class TektronixAtsSchedule(TektronixSchedule):
         super().__init__(pulselib)
         self.acquisition_controller = acquisition_controller
 
-
     def _get_digitizer_timeout(self):
         return self.digitizer.buffer_timeout()
 
@@ -98,8 +97,9 @@ class TektronixAtsSchedule(TektronixSchedule):
         logger.info('set trigger in ATS acquisition controller')
         self.acquisition_controller.pre_acquire = self._pre_acquire
 
+
 class TektronixUHFLISchedule(TektronixSchedule):
-    def __init__(self, pulselib, lockin, n_reps, timeout = 20e3):
+    def __init__(self, pulselib, lockin, n_reps, timeout=20e3):
         '''
         Schedule for the UHFLI lockin. This is only usable with a modified
         UHFLI driver, where a pre_acquire method is called before the acquisition,

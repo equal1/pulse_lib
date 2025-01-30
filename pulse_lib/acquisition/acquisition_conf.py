@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from typing import Optional, Union, List, Callable, Tuple
+from typing import Callable
 
 import numpy as np
 
 from pulse_lib.segments.utility.looping import loop_obj
+
 
 @dataclass
 class AcquisitionConf:
@@ -12,19 +13,19 @@ class AcquisitionConf:
     If true the digitizer will be configured by pulselib.
     '''
 
-    t_measure: Union[None, float, loop_obj] = None
+    t_measure: float | loop_obj | None = None
     '''
     measurement time in ns.
     If None it must be set in acquire()
     '''
 
-    channels: Optional[List[str]] = None
+    channels: list[str] | None = None
     '''
     Channels to retrieve data from specified by name.
     If None it is defined by acquire()
     '''
 
-    sample_rate: Optional[float] = None
+    sample_rate: float | None = None
     '''
     Sample rate of data in Hz. When not None, the data should not be averaged,
     but downsampled with specified rate. Useful for time traces and Elzerman readout.
@@ -41,7 +42,7 @@ class AcquisitionConf:
     Function aggregating data on time axis to new value.
     '''
 
-    f_sweep: Optional[Tuple[float, float]] = None
+    f_sweep: tuple[float, float] | None = None
     '''
     If not None f_sweep contains start and stop frequency for frequency sweep. Step frequency is inclusive.
     '''

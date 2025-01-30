@@ -1,9 +1,9 @@
-import time
-import numpy as np
 import logging
-from dataclasses import dataclass, field
-from typing import List
+import time
 from collections.abc import Iterable
+from dataclasses import dataclass, field
+
+import numpy as np
 
 from pulse_lib.segments.conditional_segment import conditional_segment
 from pulse_lib.segments.segment_base import segment_base
@@ -13,9 +13,11 @@ from pulse_lib.segments.segment_markers import segment_marker
 
 from pulse_lib.segments.utility.measurement_ref import MeasurementRef
 
+
 logger = logging.getLogger(__name__)
 
 err_acqs = None
+
 
 class ConditionalAcquisition:
     class _AcquisitionData:
@@ -25,13 +27,13 @@ class ConditionalAcquisition:
         def get_data(self):
             return self.data
 
-    def __init__(self, seg_channels:List[segment_acquisition]):
+    def __init__(self, seg_channels: list[segment_acquisition]):
         self.seg_channels = seg_channels
 
     def _get_data_all_at(self, index):
         ch_data = [
-                ch._get_data_all_at(index).get_data()
-                for ch in self.seg_channels]
+            ch._get_data_all_at(index).get_data()
+            for ch in self.seg_channels]
 
         # acquisitions in conditional branch must all be equal
         for data in ch_data[1:]:
@@ -48,7 +50,7 @@ class ConditionalMarker:
         def __init__(self):
             self.my_marker_data = []
 
-    def __init__(self, seg_channels:List[segment_marker]):
+    def __init__(self, seg_channels: list[segment_marker]):
         self.seg_channels = seg_channels
 
     def _get_data_all_at(self, index):
@@ -67,8 +69,9 @@ class ConditionalMarker:
 
 err_wvfs = None
 
+
 class ConditionalWaveform:
-    def __init__(self, seg_channels:List[segment_base]):
+    def __init__(self, seg_channels: list[segment_base]):
         self.seg_channels = seg_channels
 
     def get_segment(self, index=[0], sample_rate=1e9, ref_channel_states=None):
@@ -89,7 +92,8 @@ class ConditionalWaveform:
         integrals = [seg_ch.integrate(index, sample_rate) for seg_ch in self.seg_channels]
         return integrals[0]
 
-def get_acquisition_names(conditional:conditional_segment):
+
+def get_acquisition_names(conditional: conditional_segment):
     condition = conditional.condition
     refs = condition if isinstance(condition, Iterable) else [condition]
     acquisition_names = set()
@@ -102,7 +106,7 @@ def get_acquisition_names(conditional:conditional_segment):
 
 
 class QsConditionalSegment:
-    def __init__(self, conditional:conditional_segment):
+    def __init__(self, conditional: conditional_segment):
         self.conditional = conditional
         self.n_branches = len(conditional.branches)
         condition = conditional.condition
@@ -116,7 +120,7 @@ class QsConditionalSegment:
         duration = time.perf_counter() - start
         logger.debug(f'duration {duration*1000:6.3f} ms')
 
-    def get_acquisition_names(self, refs:List[MeasurementRef]):
+    def get_acquisition_names(self, refs: list[MeasurementRef]):
         acquisition_names = set()
         for ref in refs:
             acquisition_names.update(ref.keys)
@@ -134,8 +138,8 @@ class QsConditionalSegment:
         # 2 measurements: result contains 0,1,2,3
 
         # 0, 1, 2, 3 in binary representation on 2 acquisitions
-        all_values = np.array([[0,1,0,1],[0,0,1,1]])
-        values = {key:all_values[i] for i,key in enumerate(self.acquisition_names)}
+        all_values = np.array([[0, 1, 0, 1], [0, 0, 1, 1]])
+        values = {key: all_values[i] for i, key in enumerate(self.acquisition_names)}
 
         order = np.zeros(4, dtype=int)
         for ref in refs:
@@ -167,13 +171,13 @@ class QsConditionalMW():
     class ConditionalInstruction:
         start: float
         end: float
-        pulses: List['QsConditionalMW.BranchPulse'] = field(default_factory=list)
+        pulses: list['QsConditionalMW.BranchPulse'] = field(default_factory=list)
 
-    def __init__(self, seg_channels:List[segment_IQ],index):
+    def __init__(self, seg_channels: list[segment_IQ], index):
         self.seg_channels = seg_channels
         self.n_branches = len(seg_channels)
         self.index = index
-        self.conditional_instructions:List['QsConditionalMW.ConditionalInstruction'] = []
+        self.conditional_instructions: list['QsConditionalMW.ConditionalInstruction'] = []
         self.combine_branches()
 
     def add_pulse(self, pulse, ibranch):
@@ -212,7 +216,7 @@ class QsConditionalMW():
 
         # add new instruction
         start = phase_shift.time
-        end = start + 2 # phase shift requires 2 ns
+        end = start + 2  # phase shift requires 2 ns
         instr = QsConditionalMW.ConditionalInstruction(start, end, [None]*self.n_branches)
         instr.pulses[ibranch] = QsConditionalMW.BranchPulse(prephase=phase_shift.phase_shift)
         self.conditional_instructions.append(instr)
@@ -225,7 +229,7 @@ class QsConditionalMW():
             for pulse in pulse_data:
                 self.add_pulse(pulse, ibranch)
 
-        self.conditional_instructions.sort(key=lambda x:x.start)
+        self.conditional_instructions.sort(key=lambda x: x.start)
         # logger.debug(f'Conditional instructions: {self.conditional_instructions}')
 
         # add phase shifts to pulses, pre-phase of post-phase. Sum phase-shifts
@@ -242,7 +246,7 @@ class QsConditionalMW():
         last_end = -1
         for instr in self.conditional_instructions:
             if instr.start < last_end:
-                raise Exception(f'Overlapping conditional instructions')
+                raise Exception('Overlapping conditional instructions')
             last_end = instr.end
 
     def integrate(self, index, sample_rate=1e9):
@@ -250,9 +254,9 @@ class QsConditionalMW():
         return 0
 
 
-def get_conditional_channel(conditional:conditional_segment, channel_name:str, index=None,
-                            sequenced:bool=False):
-    ## create Conditional channels
+def get_conditional_channel(conditional: conditional_segment, channel_name: str, index=None,
+                            sequenced: bool = False):
+    # create Conditional channels
     seg_channels = [branch[channel_name] for branch in conditional.branches]
 
     if isinstance(seg_channels[0], segment_marker):
@@ -268,9 +272,3 @@ def get_conditional_channel(conditional:conditional_segment, channel_name:str, i
         return ConditionalWaveform(seg_channels)
 
     raise Exception(f'Oops: {type(seg_channels[0])}')
-
-
-
-
-
-

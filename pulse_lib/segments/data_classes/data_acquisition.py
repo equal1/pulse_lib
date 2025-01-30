@@ -1,23 +1,20 @@
-"""
-data class for acquisitions.
-"""
-import numpy as np
 import copy
 from dataclasses import dataclass
-from typing import Optional
 
 from pulse_lib.segments.data_classes.data_generic import parent_data
+
+import numpy as np
 
 
 @dataclass
 class acquisition:
-    ref : Optional[str]
+    ref: str | None
     start: float
-    t_measure: Optional[float]=None
-    n_repeat: Optional[int]=None
-    interval: Optional[float]=None
-    threshold : Optional[float]=None
-    zero_on_high: bool=False
+    t_measure: float | None = None
+    n_repeat: int | None = None
+    interval: float | None = None
+    threshold: float | None = None
+    zero_on_high: bool = False
 
 
 class acquisition_data(parent_data):
@@ -28,7 +25,7 @@ class acquisition_data(parent_data):
             pulse_amplitude(double) : pulse amplitude in mV
         """
         super().__init__()
-        self.data =  list()
+        self.data = list()
 
         self.start_time = 0
         self.end_time = 0
@@ -55,7 +52,7 @@ class acquisition_data(parent_data):
         if end_time > self.end_time:
             self.end_time = end_time
 
-    def reset_time(self, time = None):
+    def reset_time(self, time=None):
         """
         reset the effective start time. See online manual in pulse building instructions to understand this command.
         Args:
@@ -63,7 +60,7 @@ class acquisition_data(parent_data):
         """
         self.start_time = self.total_time
         if time is not None:
-            self.start_time =time
+            self.start_time = time
 
         if self.start_time > self.end_time:
             self.end_time = self.start_time
@@ -133,7 +130,7 @@ class acquisition_data(parent_data):
         Returns:
             data_copy_shifted (pulse_data) : copy of own data
         '''
-        if time_shift <0 :
+        if time_shift < 0:
             raise ValueError("when shifting time, you cannot make negative times.")
 
         data_copy_shifted = copy.copy(self)
@@ -150,10 +147,10 @@ class acquisition_data(parent_data):
         for i in self.data:
             print(i)
 
-    def get_vmin(self,sample_rate = 1e9):
+    def get_vmin(self, sample_rate=1e9):
         raise NotImplementedError()
 
-    def get_vmax(self,sample_rate = 1e9):
+    def get_vmax(self, sample_rate=1e9):
         raise NotImplementedError()
 
     def integrate_waveform(self, sample_rate):
@@ -198,17 +195,17 @@ class acquisition_data(parent_data):
         metadata = {}
         acq_d = {}
 
-        for i,acq in enumerate(self.data):
+        for i, acq in enumerate(self.data):
             acq_d[f'acq{i}'] = {
-                'start':acq.start,
-                't_measure':acq.t_measure,
-                }
+                'start': acq.start,
+                't_measure': acq.t_measure,
+            }
 
         if acq_d:
             metadata[name+'_acq'] = acq_d
 
         return metadata
 
+
 def round_pt(t, t_sample):
     return int(t / t_sample + 0.5)
-

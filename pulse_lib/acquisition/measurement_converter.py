@@ -1,12 +1,13 @@
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
 from numbers import Number
-import logging
+
 import numpy as np
+from qcodes import MultiParameter
+
 from pulse_lib.segments.segment_measurements import measurement_acquisition, measurement_expression
 from pulse_lib.acquisition.iq_modes import iq_mode2func
-from qcodes import MultiParameter
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +17,11 @@ class SetpointsSingle:
     name: str
     label: str
     unit: str
-    shape: Tuple[int] = field(default_factory=tuple)
-    setpoints: Tuple[Tuple[float]] = field(default_factory=tuple)
-    setpoint_names: Tuple[str] = field(default_factory=tuple)
-    setpoint_labels: Tuple[str] = field(default_factory=tuple)
-    setpoint_units: Tuple[str] = field(default_factory=tuple)
+    shape: tuple[int] = field(default_factory=tuple)
+    setpoints: tuple[tuple[float]] = field(default_factory=tuple)
+    setpoint_names: tuple[str] = field(default_factory=tuple)
+    setpoint_labels: tuple[str] = field(default_factory=tuple)
+    setpoint_units: tuple[str] = field(default_factory=tuple)
 
     def __post_init__(self):
         self.name = self.name.replace(' ', '_')
@@ -60,7 +61,7 @@ class SetpointsMulti:
         param = MultiParameter(..., **spm.__dict__)
     '''
 
-    def __init__(self, sps_list: List[SetpointsSingle]):
+    def __init__(self, sps_list: list[SetpointsSingle]):
         self.names = tuple(sps.name for sps in sps_list)
         self.labels = tuple(sps.label for sps in sps_list)
         self.units = tuple(sps.unit for sps in sps_list)
@@ -92,7 +93,7 @@ class MeasurementParameter(MultiParameter):
         self._derived_params = {}
         self._snapshot_extra = {}
 
-    def update_snapshot(self, snapshot_extra: Dict[str, Any]):
+    def update_snapshot(self, snapshot_extra: dict[str, any]):
         self._snapshot_extra.update(snapshot_extra)
 
     def add_derived_param(self, name, func, label=None, unit='mV',
@@ -216,13 +217,13 @@ class MeasurementParameter(MultiParameter):
         setpoints = (tuple(bincenters),)
         setpoint_names = ('sensor_val',)
         self.add_derived_param(
-                f'{m_name}_hist',
-                _histogram,
-                unit='',
-                setpoints=setpoints,
-                setpoint_units=('mV',),
-                setpoint_names=setpoint_names,
-                setpoint_labels=setpoint_names)
+            f'{m_name}_hist',
+            _histogram,
+            unit='',
+            setpoints=setpoints,
+            setpoint_units=('mV',),
+            setpoint_names=setpoint_names,
+            setpoint_labels=setpoint_names)
 
     def get_raw(self):
         data = self._source.get_channel_data()
@@ -242,9 +243,9 @@ class MeasurementParameter(MultiParameter):
         return data
 
     def snapshot_base(self,
-                      update: Optional[bool] = True,
-                      params_to_skip_update: Optional[Sequence[str]] = None
-                      ) -> Dict[Any, Any]:
+                      update: bool | None = True,
+                      params_to_skip_update: Sequence[str] | None = None
+                      ) -> dict[any, any]:
         snapshot = super().snapshot_base(update, params_to_skip_update)
         snapshot.update(self._snapshot_extra)
         return snapshot
@@ -408,7 +409,8 @@ class MeasurementConverter:
             value_differences = values[different] - m.threshold
             rel_differences = value_differences / (max_value - min_value)
             msg = (f"{n_different} differences between hardware and software thresholded results for '{m.name}'. "
-                   f"Raw value range: [{min_value:.6f}, {max_value:.6f}] mV, max difference: {np.max(np.abs(value_differences)):.6f} mV")
+                   f"Raw value range: [{min_value:.6f}, {max_value:.6f}] mV, max difference: "
+                   f"{np.max(np.abs(value_differences)):.6f} mV")
             if (np.max(np.abs(rel_differences)) > MeasurementConverter.ALLOWED_RELATIVE_THRESHOLD_DEVIATION
                     or n_different > max(1, len(values)*MeasurementConverter.ALLOWED_FRACTION_THRESHOLD_DIFFERENCES)):
                 logger.warning(msg)
@@ -418,7 +420,8 @@ class MeasurementConverter:
                 # level='INFO'
             logger.info(f"indices: {different}, values-threshold: {value_differences} mV")
             # print(level, msg)
-            # print(f"{min(value_differences):.6f}, {max(value_differences):.6f}, {np.max(np.abs(rel_differences)):.2%}, {max_value-min_value:.6f}")
+            # print(f"{min(value_differences):.6f}, {max(value_differences):.6f}, "
+            #       f"{np.max(np.abs(rel_differences)):.2%}, {max_value-min_value:.6f}")
 
         return result
 

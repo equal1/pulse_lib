@@ -1,11 +1,11 @@
-import time
-import math
-import numpy as np
 import logging
+import math
+import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple
 from uuid import UUID
+
+import numpy as np
 
 from .sequencer_device import SequencerInfo, SequencerDevice
 from .qs_conditional import get_conditional_channel, get_acquisition_names, QsConditionalSegment
@@ -14,7 +14,7 @@ from .qs_sequence import (
     IQSequenceBuilder,
     SequenceConditionalEntry,
     RFSequenceBuilder
-    )
+)
 
 from pulse_lib.segments.data_classes.data_IQ import IQ_data_single, Chirp
 from pulse_lib.segments.conditional_segment import conditional_segment
@@ -22,7 +22,7 @@ from pulse_lib.tests.mock_m3202a_qs import AwgInstruction, AwgConditionalInstruc
 from pulse_lib.tests.mock_m3102a_qs import DigitizerInstruction
 from pulse_lib.segments.utility.rounding import iround
 from pulse_lib.uploader.uploader_funcs import (
-        get_iq_nco_idle_frequency, merge_markers, get_sample_rate)
+    get_iq_nco_idle_frequency, merge_markers, get_sample_rate)
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +65,11 @@ class QsUploader:
         return True
 
     def _add_sequencers(self, AWGs, awg_channels, IQ_channels):
-        sequencer_devices: Dict[str, SequencerDevice] = {}
+        sequencer_devices: dict[str, SequencerDevice] = {}
         self.sequencer_devices = sequencer_devices
-        self.sequencer_channels:Dict[str, SequencerInfo] = {}
+        self.sequencer_channels: dict[str, SequencerInfo] = {}
         # collect output channels. They should not be rendered to full waveforms
-        self.sequencer_out_channels:List[str] = []
+        self.sequencer_out_channels: list[str] = []
 
         for awg_name, awg in AWGs.items():
             if hasattr(awg, 'get_sequencer'):
@@ -205,7 +205,7 @@ class QsUploader:
         self._awg_oscillators = awg_oscillators
 
     def _configure_rf_sequencers(self):
-        rf_sequencers: Dict[str, SequencerInfo] = {}
+        rf_sequencers: dict[str, SequencerInfo] = {}
         self.rf_sequencers = rf_sequencers
         for dig_ch in self.digitizer_channels.values():
             if dig_ch.rf_source is not None and dig_ch.frequency is not None:
@@ -425,20 +425,20 @@ class QsUploader:
         hvi_params = job.schedule_params.copy()
         if not QsUploader.use_digitizer_sequencers:
             hvi_params.update(
-                    {f'dig_trigger_{i+1}': t
-                     for i, t in enumerate(job.digitizer_triggers.keys())
-                     })
+                {f'dig_trigger_{i+1}': t
+                 for i, t in enumerate(job.digitizer_triggers.keys())
+                 })
             dig_trigger_channels = {
-                    dig_name: [[] for _ in job.digitizer_triggers]
-                    for dig_name in self.digitizers.keys()}
+                dig_name: [[] for _ in job.digitizer_triggers]
+                for dig_name in self.digitizers.keys()}
             for i, ch_names in enumerate(job.digitizer_triggers.values()):
                 for ch_name in ch_names:
                     dig_ch = self.digitizer_channels[ch_name]
                     dig_trigger_channels[dig_ch.module_name][i] += dig_ch.channel_numbers
             hvi_params.update(
-                    {f'dig_trigger_channels_{dig_name}': triggers
-                     for dig_name, triggers in dig_trigger_channels.items()
-                     })
+                {f'dig_trigger_channels_{dig_name}': triggers
+                 for dig_name, triggers in dig_trigger_channels.items()
+                 })
 
         for awg_name, awg in self.AWGs.items():
             hvi_params[f'use_awg_sequencers_{awg_name}'] = (
@@ -565,8 +565,8 @@ class QsUploader:
                         raise Exception("Disable hvi_queue_control for AWGs. It cannot handle "
                                         "low sample rates and is not needed anymore with current firmware")
                     awg.awg_queue_waveform(
-                            channel_number, queue_item.wave_reference,
-                            trigger_mode, start_delay, cycles, prescaler)
+                        channel_number, queue_item.wave_reference,
+                        trigger_mode, start_delay, cycles, prescaler)
                     trigger_mode = 0  # Auto tigger -- next waveform will play automatically.
             except Exception as ex:
                 raise Exception(f'Play failed on channel {channel_name} ({ex})')
@@ -810,8 +810,8 @@ class AwgOscillators:
     startup_time: float
     prolongation_time: float
     mode: str
-    oscillators: List[Tuple[str, int, int]] = field(default_factory=list)
-    dig2osc: Dict[str, Tuple[str, int, int]] = field(default_factory=dict)
+    oscillators: list[tuple[str, int, int]] = field(default_factory=list)
+    dig2osc: dict[str, tuple[str, int, int]] = field(default_factory=dict)
 
 
 @dataclass
@@ -823,10 +823,10 @@ class AwgQueueItem:
 @dataclass
 class AcqDescription:
     seq_id: UUID
-    index: List[int]
-    channels: List[str]
-    n_acq_samples: Dict[str, int]
-    enabled_channels: Dict[str, List[int]]
+    index: list[int]
+    channels: list[str]
+    n_acq_samples: dict[str, int]
+    enabled_channels: dict[str, list[int]]
     n_rep: int
     average_repetitions: bool
 
@@ -915,7 +915,7 @@ class ChannelInfo:
     dc_compensation: bool = False
     dc_compensation_min: float = 0.0
     dc_compensation_max: float = 0.0
-    bias_T_RC_time: Optional[float] = None
+    bias_T_RC_time: float | None = None
     # aggregation state
     integral: float = 0.0
 
@@ -942,9 +942,9 @@ class RenderSection:
 
 @dataclass
 class JobUploadInfo:
-    sections: List[RenderSection] = field(default_factory=list)
+    sections: list[RenderSection] = field(default_factory=list)
     dc_compensation_duration: float = 0.0
-    dc_compensation_voltages: Dict[str, float] = field(default_factory=dict)
+    dc_compensation_voltages: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
@@ -954,13 +954,13 @@ class SegmentRenderInfo:
     sample_rate: float
     t_start: float
     npt: int
-    section: Optional[RenderSection] = None
+    section: RenderSection | None = None
     offset: int = 0
     # transition when frequency changes: size determined by alignment and channel delays
     n_start_transition: int = 0
-    start_section: Optional[RenderSection] = None
+    start_section: RenderSection | None = None
     n_end_transition: int = 0
-    end_section: Optional[RenderSection] = None
+    end_section: RenderSection | None = None
 
     @property
     def t_end(self):
@@ -970,8 +970,8 @@ class SegmentRenderInfo:
 @dataclass
 class RefChannels:
     start_time: float
-    start_phase: Dict[str, float] = field(default_factory=dict)
-    start_phases_all: List[Dict[str, float]] = field(default_factory=list)
+    start_phase: dict[str, float] = field(default_factory=dict)
+    start_phases_all: list[dict[str, float]] = field(default_factory=list)
 
 
 @dataclass
@@ -1554,9 +1554,9 @@ class UploadAggregator:
                     if ch_name in job.t_measure:
                         if t_measure != job.t_measure[ch_name]:
                             raise Exception(
-                                    't_measure must be same for all triggers, '
-                                    f'channel:{ch_name}, '
-                                    f'{t_measure}!={job.t_measure[ch_name]}')
+                                't_measure must be same for all triggers, '
+                                f'channel:{ch_name}, '
+                                f'{t_measure}!={job.t_measure[ch_name]}')
                     else:
                         job.t_measure[ch_name] = t_measure
 

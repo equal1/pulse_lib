@@ -1,14 +1,14 @@
 from dataclasses import dataclass
-from typing import List
 import numpy as np
+
 
 @dataclass
 class SequencerInfo:
     module_name: str
     sequencer_index: int
-    channel_name: str # awg_channel or qubit_channel
-    phases: List[float]
-    gain_correction: List[float]
+    channel_name: str  # awg_channel or qubit_channel
+    phases: list[float]
+    gain_correction: list[float]
     sequencer_offset: int
 
 
@@ -19,9 +19,9 @@ class SequencerDevice:
     def __init__(self, awg):
         self.awg = awg
         self.unassigned_sequencers = {
-            '1+2': [1,2,5,6,9,10],
-            '3+4': [3,4,7,8,11,12],
-            }
+            '1+2': [1, 2, 5, 6, 9, 10],
+            '3+4': [3, 4, 7, 8, 11, 12],
+        }
 
         self.sequencer_offset: int = 10
         if hasattr(self.awg, 'get_sequencer_offset'):
@@ -41,14 +41,14 @@ class SequencerDevice:
         if channel_number in [3, 4]:
             return '3+4'
 
-    def _get_sequencer(self, channel_numbers: List[int]):
+    def _get_sequencer(self, channel_numbers: list[int]):
         group = self._get_sequencer_group(channel_numbers[0])
         for ch_num in channel_numbers[1:]:
             if self._get_sequencer_group(ch_num) != group:
                 raise Exception(
                     f"Sequencer cannot be configured on channels {channel_numbers} of awg {self.awg.name}. "
                     "IQ pairs must be configured on channels 1+2 or 3+4."
-                    )
+                )
         try:
             sequencer = self.unassigned_sequencers[group].pop(0)
         except IndexError:
@@ -61,7 +61,7 @@ class SequencerDevice:
         if channel_numbers[0] > channel_numbers[1]:
             out_channels.reverse()
         IQ_comps = ''.join(out_channel.IQ_comp for out_channel in out_channels)
-        if IQ_comps not in ['IQ','QI']:
+        if IQ_comps not in ['IQ', 'QI']:
             raise Exception(f'Expected I and Q channel, but found {IQ_comps}')
 
         phases = [self._get_phase(out_channel) for out_channel in out_channels]
@@ -83,7 +83,7 @@ class SequencerDevice:
                 else:
                     qubit_phases[0] += qubit_channel.correction_phase*180/np.pi
 
-            #print(f'{qubit_channel.channel_name} {IQ_comps} {qubit_phases}')
+            # print(f'{qubit_channel.channel_name} {IQ_comps} {qubit_phases}')
 
             sequencer = SequencerInfo(self.awg.name, seq_num,
                                       qubit_channel.channel_name, qubit_phases,

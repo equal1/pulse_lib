@@ -3,11 +3,12 @@ data class to make pulses.
 """
 import logging
 import math
-import numpy as np
 import copy
 from dataclasses import dataclass
 from numbers import Number
-from typing import Any, Dict, Callable, List
+from typing import Callable
+
+import numpy as np
 
 from pulse_lib.segments.utility.rounding import iround
 from pulse_lib.segments.data_classes.data_generic import parent_data
@@ -70,7 +71,7 @@ class custom_pulse_element:
     stop: float
     amplitude: float
     func: Callable[..., np.ndarray]
-    kwargs: Dict[str, Any]
+    kwargs: dict[str, any]
     scaling: int = 1.0
 
     def render(self, sample_rate):
@@ -86,20 +87,20 @@ class rendered_element:
     wvf: np.ndarray = None
 
 
-def shift_start_stop(data: List[Any], delta) -> None:
+def shift_start_stop(data: list[any], delta) -> None:
     for element in data:
         element.start += delta
         element.stop += delta
 
 
-def get_max_time(data: List[Any]) -> float:
+def get_max_time(data: list[any]) -> float:
     stop = 0
     for element in data:
         stop = max(stop, element.stop)
     return stop
 
 
-def shift_time(data: List[Any], delta) -> None:
+def shift_time(data: list[any], delta) -> None:
     for element in data:
         element.time += delta
 
@@ -123,9 +124,9 @@ class PhaseShift:
             if other.channel_name != self.channel_name:
                 raise Exception(f'Segment corruption: {other.channel_name} != {self.channel_name}')
             return PhaseShift(
-                    self.time,
-                    self.phase_shift + other.phase_shift,
-                    self.channel_name)
+                self.time,
+                self.phase_shift + other.phase_shift,
+                self.channel_name)
         else:
             raise Exception(f'Cannot add PhaseShift to {type(other)}')
 
@@ -179,7 +180,7 @@ class pulse_data(parent_data):
             and self.custom_pulse_data == rhs.custom_pulse_data
             and self.phase_shifts == rhs.phase_shifts
             and self.chirp_data == rhs.chirp_data
-            )
+        )
 
     def add_delta(self, delta):
         if not delta.is_near_zero:
@@ -696,7 +697,8 @@ class pulse_data(parent_data):
                         phase_envelope = 0.0
                     else:
                         amp_envelope = mw_pulse.envelope.get_AM_envelope((stop_pulse - start_pulse), sample_rate)
-                        phase_envelope = np.asarray(mw_pulse.envelope.get_PM_envelope((stop_pulse - start_pulse), sample_rate))
+                        phase_envelope = np.asarray(mw_pulse.envelope.get_PM_envelope(
+                            (stop_pulse - start_pulse), sample_rate))
                     total_phase = phase + phase_envelope
                     n_pt = int(
                         (iround(stop_pulse) - iround(start_pulse)) * sample_rate
@@ -729,10 +731,11 @@ class pulse_data(parent_data):
                     sine_data[-1] = frac_stop * sine_data[-1]
                     wvf[start_pt:stop_pt] += sine_data
             else:
-                if LO: # @@@ Check plotting. w already computed before.
+                if LO:  # @@@ Check plotting. w already computed before.
                     freq -= LO
                 if abs(freq) > sample_rate*1e9/2:
-                    raise Exception(f'Frequency {freq*1e-6:5.1f} MHz is above Nyquist frequency ({sample_rate*1e3/2} MHz)')
+                    raise Exception(
+                        f'Frequency {freq*1e-6:5.1f} MHz is above Nyquist frequency ({sample_rate*1e3/2} MHz)')
                 # TODO add check on configurable bandwidth.
                 if ref_channel_states and mw_pulse.ref_channel in ref_channel_states.start_phase:
                     ref_start_time = ref_channel_states.start_time
@@ -743,10 +746,10 @@ class pulse_data(parent_data):
 
                 if mw_pulse.ref_channel in phase_shifts_channels:
                     phase_shifts = [
-                            ps.phase_shift
-                            for ps in phase_shifts_channels[mw_pulse.ref_channel]
-                            if ps.time <= start_pulse
-                            ]
+                        ps.phase_shift
+                        for ps in phase_shifts_channels[mw_pulse.ref_channel]
+                        if ps.time <= start_pulse
+                    ]
                     phase_shift = sum(phase_shifts)
                 else:
                     phase_shift = 0
@@ -756,7 +759,8 @@ class pulse_data(parent_data):
                     phase_envelope = 0.0
                 else:
                     amp_envelope = mw_pulse.envelope.get_AM_envelope((stop_pulse - start_pulse), sample_rate)
-                    phase_envelope = np.asarray(mw_pulse.envelope.get_PM_envelope((stop_pulse - start_pulse), sample_rate))
+                    phase_envelope = np.asarray(mw_pulse.envelope.get_PM_envelope(
+                        (stop_pulse - start_pulse), sample_rate))
 
                 # Note: an IQ pulse can be shifted in time without signifcant impact.
                 n_pt = (math.floor((stop_pulse - start_pulse) * sample_rate + 0.5)
@@ -914,7 +918,7 @@ class pulse_data(parent_data):
                 'stop': stop,
                 'v_start': v_start,
                 'v_stop': v_stop
-                }
+            }
             j += 1
 
         if bb_d:

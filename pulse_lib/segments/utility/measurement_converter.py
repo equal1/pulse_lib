@@ -1,24 +1,25 @@
 from dataclasses import dataclass, field
-from typing import Tuple, List
-import numpy as np
-from pulse_lib.segments.segment_measurements import measurement_acquisition, measurement_expression
 
+import numpy as np
 from qcodes import MultiParameter
+
+from pulse_lib.segments.segment_measurements import measurement_acquisition, measurement_expression
 
 
 @dataclass
 class setpoints_single:
-    name : str
-    label : str
-    unit : str
-    shape : Tuple[int] = field(default_factory=tuple)
-    setpoints : Tuple[Tuple[float]] = field(default_factory=tuple)
-    setpoint_names : Tuple[str] = field(default_factory=tuple)
-    setpoint_labels : Tuple[str] = field(default_factory=tuple)
-    setpoint_units : Tuple[str] = field(default_factory=tuple)
+    name: str
+    label: str
+    unit: str
+    shape: tuple[int] = field(default_factory=tuple)
+    setpoints: tuple[tuple[float]] = field(default_factory=tuple)
+    setpoint_names: tuple[str] = field(default_factory=tuple)
+    setpoint_labels: tuple[str] = field(default_factory=tuple)
+    setpoint_units: tuple[str] = field(default_factory=tuple)
 
     def __post_init__(self):
         self.name = self.name.replace(' ', '_')
+
 
 class setpoints_multi:
     '''
@@ -26,7 +27,8 @@ class setpoints_multi:
         spm = setpoints_multi()
         param = MultiParameter(..., **spm.__dict__)
     '''
-    def __init__(self, sps_list:List[setpoints_single]):
+
+    def __init__(self, sps_list: list[setpoints_single]):
         self.names = tuple(sps.name for sps in sps_list)
         self.labels = tuple(sps.label for sps in sps_list)
         self.units = tuple(sps.unit for sps in sps_list)
@@ -35,6 +37,7 @@ class setpoints_multi:
         self.setpoint_names = tuple(sps.setpoint_names for sps in sps_list)
         self.setpoint_labels = tuple(sps.setpoint_labels for sps in sps_list)
         self.setpoint_units = tuple(sps.setpoint_units for sps in sps_list)
+
 
 class _MeasurementParameter(MultiParameter):
     def __init__(self, setpoints, getter):
@@ -59,7 +62,7 @@ class _MeasurementParameter(MultiParameter):
         self.mc = mc
         self.dig = dig
 
-    def setIndex(self, idx): # TODO Remove
+    def setIndex(self, idx):  # TODO Remove
         '''
         set index that is currenly playing
 
@@ -83,7 +86,6 @@ class measurement_converter:
         self.generate_setpoints_raw()
         self.generate_setpoints()
 
-
     def generate_setpoints_raw(self):
         digitizer_channels = self._description.digitizer_channels
         shape_raw = (self.n_rep,)
@@ -101,7 +103,6 @@ class measurement_converter:
                                               ((np.arange(shape_raw[0]),),),
                                               ('repetition',), ('repetition',), ('',))
                     self.sp_raw.append(sp_raw)
-
 
     def generate_setpoints(self):
         shape_raw = (self.n_rep,)
@@ -128,7 +129,6 @@ class measurement_converter:
                                         ((np.arange(shape_raw[0]),),),
                                         ('repetition', ), ('repetition',), ('', ))
         self.sp_total = setpoints_single('total_selected', 'total_selected', '#')
-
 
     def _set_channel_raw(self, data):
         digitizer_channels = self._description.digitizer_channels
@@ -171,7 +171,6 @@ class measurement_converter:
 #                period_ns = iround(1e8/channel.downsample_rate) * 10
 #                n_samples = sum(int(acq.t_measure / period_ns) for acq in acquisitions)
 #                self._channel_raw[channel.name] = ch_raw.reshape((-1, n_samples)).T
-
 
     def _set_data_raw(self):
         self._raw = []
@@ -225,14 +224,12 @@ class measurement_converter:
         self._selectors = selectors
         self._values = [np.sum(result*accepted_mask)/total_selected for result in values_unfiltered]
 
-
     def set_data(self, data, index=None):
         # todo add module_name to digitizer data
 
         self._set_channel_raw(data)
         self._set_data_raw()
         self._set_states()
-
 
     def raw(self):
         return _MeasurementParameter(setpoints_multi(self.sp_raw),
@@ -246,7 +243,6 @@ class measurement_converter:
         return _MeasurementParameter(setpoints_multi(self.sp_selectors),
                                      lambda: self._selectors)
 
-
     def values(self):
         return _MeasurementParameter(setpoints_multi(self.sp_values),
                                      lambda: self._values)
@@ -256,22 +252,21 @@ class measurement_converter:
                                      lambda: self._accepted)
 
     def less_results(self):
-        setpoints = setpoints_multi(self.sp_raw + [self.sp_total]+ self.sp_values)
-        getter = lambda: self._raw  + [self.total_selected] + self._values
+        setpoints = setpoints_multi(self.sp_raw + [self.sp_total] + self.sp_values)
+        def getter(): return self._raw + [self.total_selected] + self._values
 
         return _MeasurementParameter(setpoints, getter)
 
     def state_tomography_results(self):
-        setpoints = setpoints_multi(self.sp_states + [self.sp_mask]+ [self.sp_total]+ self.sp_values)
-        getter = lambda: self._states + [self._accepted]  + [self.total_selected] + self._values
+        setpoints = setpoints_multi(self.sp_states + [self.sp_mask] + [self.sp_total] + self.sp_values)
+        def getter(): return self._states + [self._accepted] + [self.total_selected] + self._values
 
         return _MeasurementParameter(setpoints, getter)
 
     def all_results(self):
         setpoints = setpoints_multi(self.sp_raw + self.sp_states + self.sp_selectors
                                     + self.sp_values + [self.sp_total])
-        getter = lambda: self._raw + self._states + self._selectors + self._values + [self.total_selected]
+
+        def getter(): return self._raw + self._states + self._selectors + self._values + [self.total_selected]
 
         return _MeasurementParameter(setpoints, getter)
-
-

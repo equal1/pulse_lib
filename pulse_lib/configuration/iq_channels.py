@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
-from typing import List, Union, Tuple, Optional
 
 from qcodes.instrument.parameter import Parameter
+
 
 @dataclass
 class IQ_out_channel_info:
@@ -11,19 +11,21 @@ class IQ_out_channel_info:
     # make the negative of positive image of the signal (*-1)
     image: str
 
+
 FrequencyUndefined = 'FrequencyUndefined'
+
 
 @dataclass
 class QubitChannel:
-    channel_name : str
-    resonance_frequency : Union[float, None, str]
+    channel_name: str
+    resonance_frequency: float | str | None
     ''' qubit resonance frequency.
     None is not set.
     'UndefinedFrequency' implies non-coherent pulses using NCO frequency = 0.0
     '''
     iq_channel: 'IQ_channel'
-    correction_phase: Optional[float] = None
-    correction_gain: Optional[Tuple[float]] = None
+    correction_phase: float | None = None
+    correction_gain: tuple[float] | None = None
 
     @property
     def reference_frequency(self):
@@ -35,13 +37,14 @@ class QubitChannel:
         print('reference_frequency is deprecated')
         self.resonance_frequency = value
 
+
 @dataclass
 class IQ_channel:
     name: str
-    qubit_channels: List[QubitChannel] = field(default_factory=list)
-    IQ_out_channels: List[IQ_out_channel_info] = field(default_factory=list)
-    marker_channels: List[str] = field(default_factory=list)
-    LO_parameter: Union[None, float, int, Parameter] = None
+    qubit_channels: list[QubitChannel] = field(default_factory=list)
+    IQ_out_channels: list[IQ_out_channel_info] = field(default_factory=list)
+    marker_channels: list[str] = field(default_factory=list)
+    LO_parameter: float | int | Parameter | None = None
 
     @property
     def LO(self):
@@ -55,7 +58,7 @@ class IQ_channel:
         else:
             raise ValueError("Local oscillator not set in the IQ_channel.")
 
-    def add_awg_out_chan(self, awg_channel_name, IQ_comp, image = "+"):
+    def add_awg_out_chan(self, awg_channel_name, IQ_comp, image="+"):
         """
         AWG output channel for I or Q component.
         Args:

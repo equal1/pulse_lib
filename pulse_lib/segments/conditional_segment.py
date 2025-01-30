@@ -1,26 +1,22 @@
-"""
-File contains an object that mananges segments. E.g. you are dealing with mutiple channels.
-This object also allows you to do operations on all segments at the same time.
-"""
+import copy
+import logging
 
-from pulse_lib.segments.segment_measurements import segment_measurements
-from pulse_lib.segments.segment_container import segment_container
-from pulse_lib.segments.data_classes.data_generic import map_index
+import numpy as np
 
 import pulse_lib.segments.utility.looping as lp
+from pulse_lib.segments.data_classes.data_generic import map_index
+from pulse_lib.segments.segment_measurements import segment_measurements
+from pulse_lib.segments.segment_container import segment_container
 from pulse_lib.segments.utility.data_handling_functions import find_common_dimension, reduce_arr
 from pulse_lib.segments.utility.setpoint_mgr import setpoint_mgr
 
-import numpy as np
-import logging
-import copy
-from typing import List
 
 logger = logging.getLogger(__name__)
 
+
 class conditional_segment:
 
-    def __init__(self, condition, branches:List[segment_container],
+    def __init__(self, condition, branches: list[segment_container],
                  name=None, sample_rate=None):
         # create N segment_container
         self.condition = condition
@@ -80,7 +76,7 @@ class conditional_segment:
         for i, branch in enumerate(self.branches):
             time_data[i] = branch.total_time
 
-        times = np.amax(time_data, axis = 0)
+        times = np.amax(time_data, axis=0)
 
         return times
 
@@ -145,7 +141,6 @@ class conditional_segment:
 
     def get_metadata(self):
         metadata = {}
-        for i,branch in enumerate(self.branches):
+        for i, branch in enumerate(self.branches):
             metadata[f'branch_{i}'] = branch.get_metadata()
         return metadata
-

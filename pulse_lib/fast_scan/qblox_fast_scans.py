@@ -1,13 +1,14 @@
+import logging
 from collections.abc import Sequence
-from typing import Any, Dict, Optional
-from qcodes import MultiParameter
 
 import numpy as np
-import logging
+from qcodes import MultiParameter
 
 from pulse_lib.acquisition.iq_modes import iq_mode2func
 
+
 logger = logging.getLogger(__name__)
+
 
 def fast_scan1D_param(pulse_lib, gate, swing, n_pt, t_step,
                       biasT_corr=False,
@@ -38,7 +39,8 @@ def fast_scan1D_param(pulse_lib, gate, swing, n_pt, t_step,
         channels List[str]: digitizer channels to read
         channel_map (Dict[str, Tuple(str, Callable[[np.ndarray], np.ndarray])]):
             defines new list of derived channels to display. Dictionary entries name: (channel_name, func).
-            E.g. {(ch1-I':(1, np.real), 'ch1-Q':('ch1', np.imag), 'ch3-Amp':('ch3', np.abs), 'ch3-Phase':('ch3', np.angle)}
+            E.g. {(ch1-I':(1, np.real), 'ch1-Q':('ch1', np.imag), 'ch3-Amp':('ch3', np.abs),
+                   'ch3-Phase':('ch3', np.angle)}
         enabled_markers (List[str]): marker channels to enable during scan
         pulse_gates (Dict[str, float]):
             Gates to pulse during scan with pulse voltage in mV.
@@ -86,8 +88,8 @@ def fast_scan1D_param(pulse_lib, gate, swing, n_pt, t_step,
     vpx = vp * (n_ptx-1)/(n_pt-1)
 
     # set up sweep voltages (get the right order, to compensate for the biasT).
-    voltages_sp = np.linspace(-vp,vp,n_pt)
-    voltages_x = np.linspace(-vpx,vpx,n_ptx)
+    voltages_sp = np.linspace(-vp, vp, n_pt)
+    voltages_x = np.linspace(-vpx, vpx, n_ptx)
     if biasT_corr:
         m = (n_ptx+1)//2
         voltages = np.zeros(n_ptx)
@@ -96,7 +98,7 @@ def fast_scan1D_param(pulse_lib, gate, swing, n_pt, t_step,
     else:
         voltages = voltages_x
 
-    seg  = pulse_lib.mk_segment()
+    seg = pulse_lib.mk_segment()
     g1 = seg[gate]
     pulse_channels = []
     for ch, v in pulse_gates.items():
@@ -147,23 +149,23 @@ def fast_scan1D_param(pulse_lib, gate, swing, n_pt, t_step,
         my_seq.upload()
 
     parameters = dict(
-            gate=gate,
-            swing=dict(label="swing", value=swing, unit="mV"),
-            n_pt=n_pt,
-            t_measure=dict(label="t_measure", value=t_step, unit="ns"),
-            biasT_corr=biasT_corr,
-            iq_mode=iq_mode,
-            acquisition_delay=dict(
-                label="acquisition_delay",
-                value=acquisition_delay_ns,
-                unit="ns"),
-            enabled_markers=enabled_markers,
-            pulse_gates={
-                name: dict(label=name, value=value, unit="mV")
-                for name, value in pulse_gates
-                },
-            line_margin=line_margin,
-            )
+        gate=gate,
+        swing=dict(label="swing", value=swing, unit="mV"),
+        n_pt=n_pt,
+        t_measure=dict(label="t_measure", value=t_step, unit="ns"),
+        biasT_corr=biasT_corr,
+        iq_mode=iq_mode,
+        acquisition_delay=dict(
+            label="acquisition_delay",
+            value=acquisition_delay_ns,
+            unit="ns"),
+        enabled_markers=enabled_markers,
+        pulse_gates={
+            name: dict(label=name, value=value, unit="mV")
+            for name, value in pulse_gates
+        },
+        line_margin=line_margin,
+    )
 
     return _scan_parameter(pulse_lib, my_seq, t_step,
                            (n_pt, ), (gate, ), (tuple(voltages_sp), ),
@@ -206,7 +208,8 @@ def fast_scan2D_param(pulse_lib, gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_s
         channels List[str]: digitizer channels to read
         channel_map (Dict[str, Tuple(str, Callable[[np.ndarray], np.ndarray])]):
             defines new list of derived channels to display. Dictionary entries name: (channel_name, func).
-            E.g. {(ch1-I':(1, np.real), 'ch1-Q':('ch1', np.imag), 'ch3-Amp':('ch3', np.abs), 'ch3-Phase':('ch3', np.angle)}
+            E.g. {(ch1-I':(1, np.real), 'ch1-Q':('ch1', np.imag), 'ch3-Amp':('ch3', np.abs),
+                   'ch3-Phase':('ch3', np.angle)}
         enabled_markers (List[str]): marker channels to enable during scan
         pulse_gates (Dict[str, float]):
             Gates to pulse during scan with pulse voltage in mV.
@@ -251,8 +254,8 @@ def fast_scan2D_param(pulse_lib, gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_s
     vp1 = swing1/2
     vp2 = swing2/2
 
-    voltages1_sp = np.linspace(-vp1,vp1,n_pt1)
-    voltages2_sp = np.linspace(-vp2,vp2,n_pt2)
+    voltages1_sp = np.linspace(-vp1, vp1, n_pt1)
+    voltages2_sp = np.linspace(-vp2, vp2, n_pt2)
 
     n_ptx = n_pt1 + 2*line_margin
     vpx = vp1 * (n_ptx-1)/(n_pt1-1)
@@ -265,7 +268,7 @@ def fast_scan2D_param(pulse_lib, gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_s
     else:
         voltages2 = voltages2_sp
 
-    seg  = pulse_lib.mk_segment()
+    seg = pulse_lib.mk_segment()
 
     g1 = seg[gate1]
     g2 = seg[gate2]
@@ -284,7 +287,7 @@ def fast_scan2D_param(pulse_lib, gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_s
         total_duration = 2*prebias_pts + n_ptx*n_pt2 * (2 if add_pulse_gate_correction else 1)
         g2.add_block(0, -1, -(prebias_pts * vp2)/total_duration)
         g2.add_block(0, t_prebias, vp2)
-        for g,v in pulse_channels:
+        for g, v in pulse_channels:
             g.add_block(0, t_prebias, -v)
         seg.reset_time()
 
@@ -332,26 +335,26 @@ def fast_scan2D_param(pulse_lib, gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_s
         my_seq.upload()
 
     parameters = dict(
-            gate1=gate1,
-            swing1=dict(label="swing1", value=swing1, unit="mV"),
-            n_pt1=n_pt1,
-            gate2=gate2,
-            swing2=dict(label="swing2", value=swing2, unit="mV"),
-            n_pt2=n_pt2,
-            t_measure=dict(label="t_measure", value=t_step, unit="ns"),
-            biasT_corr=biasT_corr,
-            iq_mode=iq_mode,
-            acquisition_delay=dict(
-                label="acquisition_delay",
-                value=acquisition_delay_ns,
-                unit="ns"),
-            enabled_markers=enabled_markers,
-            pulse_gates={
-                name: dict(label=name, value=value, unit="mV")
-                for name, value in pulse_gates
-                },
-            line_margin=line_margin,
-            )
+        gate1=gate1,
+        swing1=dict(label="swing1", value=swing1, unit="mV"),
+        n_pt1=n_pt1,
+        gate2=gate2,
+        swing2=dict(label="swing2", value=swing2, unit="mV"),
+        n_pt2=n_pt2,
+        t_measure=dict(label="t_measure", value=t_step, unit="ns"),
+        biasT_corr=biasT_corr,
+        iq_mode=iq_mode,
+        acquisition_delay=dict(
+            label="acquisition_delay",
+            value=acquisition_delay_ns,
+            unit="ns"),
+        enabled_markers=enabled_markers,
+        pulse_gates={
+            name: dict(label=name, value=value, unit="mV")
+            for name, value in pulse_gates
+        },
+        line_margin=line_margin,
+    )
 
     return _scan_parameter(pulse_lib, my_seq, t_step,
                            (n_pt2, n_pt1), (gate2, gate1),
@@ -361,7 +364,7 @@ def fast_scan2D_param(pulse_lib, gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_s
 
 
 def _get_channels(pulse_lib, channel_map, channels, iq_mode, iq_complex):
-    if iq_complex == False:
+    if iq_complex is False:
         iq_mode = 'I+Q'
     if channel_map is not None:
         acq_channels = set(v[0] for v in channel_map.values())
@@ -393,6 +396,7 @@ class _scan_parameter(MultiParameter):
     """
     generator for the parameter f
     """
+
     def __init__(self, pulse_lib, my_seq, t_measure, shape, names, setpoint,
                  biasT_corr, channel_map, reload_seq, snapshot_extra):
         """
@@ -406,7 +410,8 @@ class _scan_parameter(MultiParameter):
             biasT_corr (bool): bias T correction or not -- if enabled -- automatic reshaping of the data.
             channel_map (Dict[str, Tuple(str, Callable[[np.ndarray], np.ndarray])]):
                 defines new list of derived channels to display. Dictionary entries name: (channel_name, func).
-                E.g. {(ch1-I':(1, np.real), 'ch1-Q':('ch1', np.imag), 'ch3-Amp':('ch3', np.abs), 'ch3-Phase':('ch3', np.angle)}
+                E.g. {(ch1-I':(1, np.real), 'ch1-Q':('ch1', np.imag), 'ch3-Amp':('ch3', np.abs),
+                       'ch3-Phase':('ch3', np.angle)}
             reload_seq (bool):
                 If True the sequence is uploaded for every scan.
                 This gives makes the scan a bit slower, but allows to sweep all pulse-lib settings.
@@ -430,7 +435,7 @@ class _scan_parameter(MultiParameter):
                 "channel": mapping[0],
                 "func": getattr(mapping[1], "__name__", str(mapping[1])),
                 "unit": mapping[2],
-                }
+            }
         snapshot_extra["parameters"]["channel_map"] = channel_map_snapshot
         self._snapshot_extra = snapshot_extra
 
@@ -454,7 +459,7 @@ class _scan_parameter(MultiParameter):
             self.my_seq.play()
         else:
             # play sequence
-            self.my_seq.play(release = False)
+            self.my_seq.play(release=False)
         raw_dict = self.my_seq.get_channel_data()
 
         # get the data
@@ -482,24 +487,22 @@ class _scan_parameter(MultiParameter):
         return tuple(data_out)
 
     def snapshot_base(self,
-                      update: Optional[bool] = True,
-                      params_to_skip_update: Optional[Sequence[str]] = None
-                      ) -> Dict[Any, Any]:
+                      update: bool | None = True,
+                      params_to_skip_update: Sequence[str] | None = None
+                      ) -> dict[any, any]:
         snapshot = super().snapshot_base(update, params_to_skip_update)
         snapshot.update(self._snapshot_extra)
         return snapshot
 
     def stop(self):
-        if not self.my_seq is None and not self.pulse_lib is None:
+        if self.my_seq is not None and self.pulse_lib is not None:
             logger.info('stop: release memory')
             # remove pulse sequence from the AWG's memory, unload schedule and free memory.
             self.my_seq.close()
             self.my_seq = None
             self.pulse_lib = None
 
-
     def __del__(self):
-        if not self.my_seq is None and not self.pulse_lib is None:
+        if self.my_seq is not None and self.pulse_lib is not None:
             logger.debug('Automatic cleanup in __del__(); Calling stop()')
             self.stop()
-

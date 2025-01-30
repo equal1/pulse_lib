@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional, List
 
 import numpy as np
 import pyspcm
@@ -16,14 +15,14 @@ def notnone(*values):
 
 @dataclass
 class ChannelDemodulation:
-    channels: List[int]
+    channels: list[int]
     frequency: float
     phase: float
 
 
 class M4iControl:
     def __init__(self, digitizer,
-                 box_averages: Optional[float]  =None):
+                 box_averages: float | None = None):
         self._dig = digitizer
         self._box_averages = box_averages
         self._digitizer_triggers = None
@@ -41,9 +40,9 @@ class M4iControl:
 
     def configure_acquisitions(self,
                                digitizer_triggers: DigitizerTriggers,
-                               n_rep: Optional[int],
+                               n_rep: int | None,
                                average_repetitions: bool = False,
-                               demodulate: List[ChannelDemodulation] = []):
+                               demodulate: list[ChannelDemodulation] = []):
         self._digitizer_triggers = digitizer_triggers
         self._demodulate = demodulate
         n_triggers = len(digitizer_triggers.triggers)
@@ -55,11 +54,11 @@ class M4iControl:
                         average_repetitions=average_repetitions)
 
     def _configure(self,
-                   channels: List[int],
+                   channels: list[int],
                    t_measure: float,
-                   n_triggers: Optional[int] = None,
-                   n_rep: Optional[int] = None,
-                   data_sample_rate: Optional[float] = None,
+                   n_triggers: int | None = None,
+                   n_rep: int | None = None,
+                   data_sample_rate: float | None = None,
                    average_repetitions: bool = False,
                    sw_trigger: bool = False):
 
@@ -69,7 +68,7 @@ class M4iControl:
 
         self._channels = channels
         if len(channels) == 3:
-            self._enabled_channels = [0,1,2,3]
+            self._enabled_channels = [0, 1, 2, 3]
         else:
             self._enabled_channels = channels
         self._num_ch = len(self._enabled_channels)
@@ -89,7 +88,8 @@ class M4iControl:
         self._eff_sample_rate = self._sample_rate / divisor
         self._samples_per_segment = round(self._eff_sample_rate * t_measure * 1e-9)
         if self._samples_per_segment == 0:
-            raise ValueError(f'invalid settings: sample_rate:{self._sample_rate/1e6:5.2f} MHz t_measure:{t_measure} ns')
+            raise ValueError(f"invalid settings: sample_rate:{self._sample_rate/1e6:5.2f} MHz "
+                             f"t_measure:{t_measure} ns")
 
         self._cached_set('enable_channels', sum(2**ch for ch in self._enabled_channels))
         if sw_trigger:
@@ -137,7 +137,7 @@ class M4iControl:
             data = data.astype(complex)
             # time in [s]
             start_times = np.array(list(self._digitizer_triggers.triggered_channels))*1e-9
-            t = start_times[:,None] + np.arange(self._samples_per_segment) / self._eff_sample_rate
+            t = start_times[:, None] + np.arange(self._samples_per_segment) / self._eff_sample_rate
 
             for demodulation in self._demodulate:
                 channels = [self._channels.index(ch) for ch in demodulation.channels]
@@ -165,7 +165,7 @@ class M4iControl:
         # filter acquisitions: the number of acquisitions per channel can differ
         if self._digitizer_triggers:
             res = []
-            for i,ch in enumerate(self._channels):
+            for i, ch in enumerate(self._channels):
                 sel = self._digitizer_triggers.get_channel_indices(ch)
                 if len(sel):
                     ch_data = data[i]
