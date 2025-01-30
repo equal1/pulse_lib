@@ -173,6 +173,7 @@ class segment_container():
         self._shape = np.broadcast_shapes(self._shape, loop_shape)
         self._setpoints += setpoint(
                 loop_obj.axis[0],
+                name=(loop_obj.names[0],),
                 label=(loop_obj.labels[0],),
                 unit=(loop_obj.units[0],),
                 setpoint=(loop_obj.setvals[0],))

@@ -32,9 +32,10 @@ def find_common_dimension(dim_1, dim_2):
     try:
         res = np.broadcast_shapes(dim_1, dim_2)
         return res
-    except:
+    except Exception:
         raise ValueError(f"Cannot combine dimensions of data objects {dim_1} and {dim_2}."
-                         "This error is most likely caused by looping over two variables with different dimensions along the same axis.")
+                         "This error is most likely caused by looping over two variables "
+                         "with different dimensions along the same axis.")
 
 
 def update_dimension(data, new_dimension_info):
@@ -55,35 +56,40 @@ def update_dimension(data, new_dimension_info):
         if data.ndim < i+1:
             data = _add_dimensions(data, new_dimension_info[-i-1:])
 
-        elif list(data.shape)[-i -1] != new_dimension_info[-i -1]:
+        elif list(data.shape)[-i-1] != new_dimension_info[-i-1]:
             shape = list(data.shape)
             shape[-i-1] = new_dimension_info[-i-1]
             data = _extend_dimensions(data, shape, -i-1)
 
     return data
 
+
 def _add_dimensions(data, shape):
     """
-    Function that can be used to add and extra dimension of an array object. A seperate function is needed since we want to make a copy and not a reference.
+    Function that can be used to add and extra dimension of an array object.
+    A seperate function is needed since we want to make a copy and not a reference.
     Note that only one dimension can be extended!
     Args:
         data (np.ndarray[dtype = object]) : numpy object that contains all the segment data of every iteration.
         shape (list/np.ndarray) : list of the new dimensions of the array
     """
-    new_data =  data_container(shape = shape)
+    new_data = data_container(shape=shape)
     for i in range(shape[0]):
         new_data[i] = _cpy_numpy_shallow(data)
     return new_data
 
+
 def _extend_dimensions(data, shape, new_axis):
     '''
-    Extends the dimensions of a existing array object. This is useful if one would have first defined sweep axis 2 without defining axis 1.
+    Extends the dimensions of a existing array object. This is useful if
+    one would have first defined sweep axis 2 without defining axis 1.
     In this case axis 1 is implicitly made, only harbouring 1 element.
     This function can be used to change the axis 1 to a different size.
 
     Args:
-        data (np.ndarray[dtype = object]) : numpy object that contains all the segment data of every iteration.
-        shape (list/np.ndarray) : list of the new dimensions of the array (should have the same lenght as the dimension of the data!)
+        data (np.ndarray[dtype = object]): numpy object that contains all the segment data of every iteration.
+        shape (list/np.ndarray):
+            list of the new dimensions of the array (should have the same lenght as the dimension of the data!)
         axis (int): the axis added in shape
     '''
     new_data = data_container(shape=shape)
@@ -110,7 +116,7 @@ def _cpy_numpy_shallow(data):
     Args:
         data : data element
     '''
-    if type(data) != data_container:
+    if type(data) is not data_container:
         return copy(data)
 
     if data.shape == (1,):
@@ -177,8 +183,8 @@ def _update_segment_dims(segment, lp, rendering=False):
     data = segment.data if not rendering else segment.pulse_data_all
     for i, a in enumerate(lp.axis):
         if (a >= len(data.shape)
-            or data.shape[a] != lp.shape[i]
-            or (not lp.no_setpoints and a not in segment._setpoints)):
+                or data.shape[a] != lp.shape[i]
+                or (not lp.no_setpoints and a not in segment._setpoints)):
             # update dimes / setpoints
             break
     else:
@@ -186,7 +192,7 @@ def _update_segment_dims(segment, lp, rendering=False):
         return lp.axis
 
     axes = list(lp.axis)
-    for i in range(len(lp.axis)-1,-1,-1):
+    for i in range(len(lp.axis)-1, -1, -1):
 
         lp_axis = lp.axis[i]
         lp_length = lp.shape[i]
@@ -202,7 +208,12 @@ def _update_segment_dims(segment, lp, rendering=False):
         axes[i] = axis
 
         if not lp.no_setpoints and lp.setvals is not None:
-            sp = setpoint(axis, label=(lp.labels[i],), unit=(lp.units[i],), setpoint=(lp.setvals[i],))
+            sp = setpoint(
+                axis,
+                name=(lp.names[i],),
+                label=(lp.labels[i],),
+                unit=(lp.units[i],),
+                setpoint=(lp.setvals[i],))
             segment._setpoints += sp
 
     if not rendering:
@@ -220,6 +231,8 @@ class LoopInfo:
 
 
 _in_loop = False
+
+
 def loop_controller(func):
     '''
     Checks if there are there are parameters given that are loopable.

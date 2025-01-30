@@ -1,4 +1,10 @@
-from typing import Tuple, Optional
+import time
+import logging
+import uuid
+from collections.abc import Sequence
+from numbers import Number
+
+import numpy as np
 import matplotlib.pyplot as pt
 from qcodes import Parameter
 
@@ -16,11 +22,6 @@ from .acquisition.player import SequencePlayer
 from .acquisition.measurement_converter import MeasurementConverter, DataSelection, MeasurementParameter
 from .compiler.condition_measurements import ConditionMeasurements
 
-import time
-from numbers import Number
-import numpy as np
-import uuid
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -253,7 +254,7 @@ class sequencer():
         self.params = []
 
         for i in range(len(self.labels)):
-            par_name = self.labels[i].replace(' ', '_')
+            par_name = self.setpoint_data.names[i].replace(' ', '_')
             set_param = index_param(par_name, self.labels[i], self.units[i], self, dim=i)
             self.params.append(set_param)
             setattr(self, par_name, set_param)
@@ -269,6 +270,16 @@ class sequencer():
                 name = vm.channel_name
                 LOdict[name] = iq.LO
         self.metadata['LOs'] = LOdict
+        axis_info = {}
+        for i, param in enumerate(self.params):
+            axis_info[param.name] = {
+                "axis": i,
+                "values": param.values,
+                "unit": param.unit,
+                "label": param.label,
+                }
+        if axis_info:
+            self.metadata["axes"] = axis_info
 
     def voltage_compensation(self, compensate):
         '''
@@ -304,6 +315,7 @@ class sequencer():
             self._shape = np.broadcast_shapes(self._shape, loop_shape)
             self._setpoints += setpoint(
                     axis,
+                    name=(frequency.names[0],),
                     label=(frequency.labels[0],),
                     unit=(frequency.units[0],),
                     setpoint=(frequency.setvals[0],))
@@ -324,7 +336,7 @@ class sequencer():
                         channels=[],
                         average_repetitions=None,
                         aggregate_func=None,
-                        f_sweep: Optional[Tuple[float,float]] = None,
+                        f_sweep: tuple[float, float] | None = None,
                         ):
         '''
         Args:
@@ -802,7 +814,15 @@ class index_param(Parameter):
                 label=label,
                 unit=unit,
                 val_mapping=val_map,
-                initial_value=self.values[0])
+                initial_value=self.values[0],
+                )
+
+    def snapshot_base(self,
+                      update: bool | None = True,
+                      params_to_skip_update: Sequence[str] | None = None):
+        snapshot = super().snapshot_base(update=update, params_to_skip_update=params_to_skip_update)
+        snapshot["values"] = self.values
+        return snapshot
 
     def set_raw(self, value):
         self.my_seq.set_sweep_index(self.dim, value)

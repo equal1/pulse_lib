@@ -9,8 +9,10 @@ The setpoint_mgr is meant to run in segment object and can be conbined easily
 for all the channels on segment_contianer level and further into the sequence.
 """
 
+
 class setpoint_mgr():
     """docstring for setpoint_mgr"""
+
     def __init__(self):
         self._setpoints = dict()
 
@@ -34,7 +36,8 @@ class setpoint_mgr():
             for setpnt in other:
                 output += setpnt
         else:
-            raise ValueError("setpoint_mgr does not support counting up of the type {}. Please use the setpoint_mgr or setpoint type".format(type(other)))
+            raise ValueError(
+                "setpoint_mgr does not support counting up of the type {}. Please use the setpoint_mgr or setpoint type".format(type(other)))
 
         return output
 
@@ -78,15 +81,30 @@ class setpoint_mgr():
         return len(self._setpoints)
 
     @property
+    def names(self):
+        names = tuple()
+        for key in sorted(self._setpoints.keys()):
+            if len(self._setpoints[key].name) >= 1:
+                good_names = np.where(np.asarray(self._setpoints[key].name) != "no_name")[0]
+                if len(good_names) >= 1:
+                    names += (self._setpoints[key].name[good_names[0]], )
+                else:
+                    names += (self._setpoints[key].name[0], )
+
+            else:
+                names += ("No_name_defined", )
+        return names
+
+    @property
     def labels(self):
         labels = tuple()
         for key in sorted(self._setpoints.keys()):
             if len(self._setpoints[key].label) >= 1:
                 good_labels = np.where(np.asarray(self._setpoints[key].label) != 'no label')[0]
-                if len(good_labels)>=1:
-                    labels += (self._setpoints[key].label[good_labels[0]] , )
+                if len(good_labels) >= 1:
+                    labels += (self._setpoints[key].label[good_labels[0]], )
                 else:
-                    labels += (self._setpoints[key].label[0] , )
+                    labels += (self._setpoints[key].label[0], )
 
             else:
                 labels += ("No_label_defined", )
@@ -98,10 +116,10 @@ class setpoint_mgr():
         for key in sorted(self._setpoints.keys()):
             if len(self._setpoints[key].unit) >= 1:
                 good_units = np.where(np.asarray(self._setpoints[key].unit) != 'no label')[0]
-                if len(good_units)>=1:
-                    units += (self._setpoints[key].unit[good_units[0]] , )
+                if len(good_units) >= 1:
+                    units += (self._setpoints[key].unit[good_units[0]], )
                 else:
-                    units += (self._setpoints[key].unit[0] , )
+                    units += (self._setpoints[key].unit[0], )
             else:
                 units += ("a.u.", )
         return units
@@ -112,10 +130,10 @@ class setpoint_mgr():
         for key in sorted(self._setpoints.keys()):
             if len(self._setpoints[key].setpoint) >= 1:
                 good_labels = np.where(np.asarray(self._setpoints[key].label) != 'no label')[0]
-                if len(good_labels)>=1:
-                    setpnts += (self._setpoints[key].setpoint[good_labels[0]] , )
+                if len(good_labels) >= 1:
+                    setpnts += (self._setpoints[key].setpoint[good_labels[0]], )
                 else:
-                    setpnts += (self._setpoints[key].setpoint[0] , )
+                    setpnts += (self._setpoints[key].setpoint[0], )
             else:
                 setpnts += (None, )
         return setpnts
@@ -127,14 +145,15 @@ class setpoint_mgr():
 
 @dataclass
 class setpoint():
-    axis : int
-    label : tuple = tuple()
-    unit : tuple = tuple()
-    setpoint : tuple = tuple()
+    axis: int
+    label: tuple = tuple()
+    unit: tuple = tuple()
+    setpoint: tuple = tuple()
+    name: tuple = tuple()
 
     def __add__(self, other):
         if self.axis != other.axis:
-            raise ValueError("Counting of two setpoint variables on two axis. This is not allowed.")
+            raise ValueError("Indexing of two setpoint variables on two axis. This is not allowed.")
 
         my_sum = setpoint(self.axis)
         # prioritize setpoints of variables where units/labels are defined.
@@ -142,12 +161,15 @@ class setpoint():
             my_sum.setpoint = other.setpoint + self.setpoint
             my_sum.label = other.label + self.label
             my_sum.unit = other.unit + self.unit
+            my_sum.name = other.name + self.name
         else:
             my_sum.setpoint = self.setpoint + other.setpoint
             my_sum.label = self.label + other.label
             my_sum.unit = self.unit + other.unit
+            my_sum.name = self.name + other.name
 
         return my_sum
+
 
 if __name__ == '__main__':
     b = setpoint(1)

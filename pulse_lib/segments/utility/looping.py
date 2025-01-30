@@ -1,11 +1,13 @@
 import numpy as np
 import copy
 
+
 class loop_obj():
     """object that initializes some standard fields that need to be there in a loop object.
     Args:
         no_setpoints (bool): ignore setpoints if False. Required for internal loop objects, e.g. as used in reset_time()
     """
+
     def __init__(self, no_setpoints=False):
         self.no_setpoints = no_setpoints
         self.names = list()
@@ -36,7 +38,7 @@ class loop_obj():
 
         if axis is None:
             self.axis = [-1]*len(self.data.shape)
-        elif type(axis) == int:
+        elif type(axis) is int:
             self.axis = [axis]
         else:
             if len(axis) != len(self.data.shape):
@@ -55,7 +57,7 @@ class loop_obj():
 
         if names is None:
             self.names = tuple(['no_name']*self.ndim)
-        elif type(names) == str:
+        elif type(names) is str:
             self.names = (names, )
         else:
             if len(names) != len(self.data.shape):
@@ -64,7 +66,7 @@ class loop_obj():
 
         if labels is None:
             self.labels = tuple(['no_label']*self.ndim)
-        elif type(labels) == str:
+        elif type(labels) is str:
             self.labels = (labels, )
         else:
             if len(labels) != len(self.data.shape):
@@ -73,7 +75,7 @@ class loop_obj():
 
         if units is None:
             self.units = tuple(['']*self.ndim)
-        elif type(units) == str:
+        elif type(units) is str:
             self.units = (units, )
         else:
             if len(units) != len(self.data.shape):
@@ -84,10 +86,10 @@ class loop_obj():
             if len(self.data.shape) == 1:
                 self.setvals = (self.data, )
             else:
-                raise ValueError ('Multidimensional setpoints cannot be inferred from input.')
+                raise ValueError('Multidimensional setpoints cannot be inferred from input.')
         else:
             self.setvals = tuple()
-            if isinstance(setvals,list) or isinstance(setvals, np.ndarray):
+            if isinstance(setvals, list) or isinstance(setvals, np.ndarray):
                 setvals = np.asarray(setvals)
 
                 if self.shape != setvals.shape:
@@ -257,7 +259,7 @@ class loop_obj():
         cpy.dtype = copy.copy(self.dtype)
 
         if hasattr(self, 'data'):
-            cpy.data= copy.copy(self.data)
+            cpy.data = copy.copy(self.data)
         return cpy
 
 #    def _JSONEncoder(self):
@@ -351,7 +353,6 @@ class loop_obj():
 
 
 class linspace(loop_obj):
-    """docstring for linspace"""
     def __init__(self, start, stop, n_steps=50,
                  name=None, label=None, unit=None, axis=-1, setvals=None,
                  endpoint=True):
@@ -359,8 +360,8 @@ class linspace(loop_obj):
         super().add_data(np.linspace(start, stop, n_steps, endpoint=endpoint),
                          axis=axis, names=name, labels=label, units=unit, setvals=setvals)
 
+
 class logspace(loop_obj):
-    """docstring for logspace"""
     def __init__(self, start, stop, n_steps=50,
                  name=None, label=None, unit=None, axis=-1, setvals=None,
                  endpoint=True):
@@ -368,14 +369,15 @@ class logspace(loop_obj):
         super().add_data(np.logspace(start, stop, n_steps, endpoint=endpoint),
                          axis=axis, names=name, labels=label, units=unit, setvals=setvals)
 
+
 class geomspace(loop_obj):
-    """docstring for geomspace"""
-    def __init__(self, start, stop, n_steps = 50,
+    def __init__(self, start, stop, n_steps=50,
                  name=None, label=None, unit=None, axis=-1, setvals=None,
                  endpoint=True):
         super().__init__()
         super().add_data(np.geomspace(start, stop, n_steps, endpoint=endpoint),
                          axis=axis, names=name, labels=label, units=unit, setvals=setvals)
+
 
 class arange(loop_obj):
     def __init__(self, start, stop=None, step=1,
@@ -386,6 +388,7 @@ class arange(loop_obj):
             start = 0
         super().add_data(np.arange(start, stop, step),
                          axis=axis, names=name, labels=label, units=unit, setvals=setvals)
+
 
 class array(loop_obj):
     def __init__(self, data,
@@ -400,18 +403,21 @@ if __name__ == '__main__':
     lp.add_data(np.array([1]), axis=0)
     print(lp.labels)
 
-    data = np.linspace(0,5,10)
+    data = np.linspace(0, 5, 10)
     lp = loop_obj()
-    lp.add_data(data, axis=0, labels = "gate_name", units = 'mV')
+    lp.add_data(data, axis=0, labels="gate_name", units='mV')
     print(lp.data)
     print(lp.axis)
     print(lp.labels)
     print(lp.units)
     print(lp.setvals)
 
-    data = np.arange(10,40,10)[:,np.newaxis] + np.arange(1,5)[np.newaxis,:]
+    data = np.arange(10, 40, 10)[:, np.newaxis] + np.arange(1, 5)[np.newaxis, :]
     lp = loop_obj()
-    lp.add_data(data, axis=[1,0], labels = ("gate_name_1", "gate_name_2"), units = ('mV', 'mV'), setvals=([10,20,30],[1,2,3,4]))
+    lp.add_data(data, axis=[1, 0],
+                labels=("gate_name_1", "gate_name_2"),
+                units=('mV', 'mV'),
+                setvals=([10, 20, 30], [1, 2, 3, 4]))
 
     print(lp.data)
     print(lp.axis)
