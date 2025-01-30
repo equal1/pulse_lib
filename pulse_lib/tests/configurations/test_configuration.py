@@ -4,14 +4,12 @@ import os
 from collections.abc import Sequence
 from functools import partial
 from numbers import Number
-from typing import Dict, List, Union
+
 import matplotlib.pyplot as pt
 import numpy as np
-
 import qcodes as qc
 import qcodes.logger as qc_logger
 from qcodes.logger import start_all_logging
-
 from ruamel.yaml import YAML
 
 from pulse_lib.base_pulse import pulselib
@@ -129,9 +127,9 @@ class Context:
         from keysight_fpga.sd1.sd1_utils import check_error
 
         pxi_triggers = [
-                SD1.SD_TriggerExternalSources.TRIGGER_PXI6,
-                SD1.SD_TriggerExternalSources.TRIGGER_PXI7,
-            ]
+            SD1.SD_TriggerExternalSources.TRIGGER_PXI6,
+            SD1.SD_TriggerExternalSources.TRIGGER_PXI7,
+        ]
 
         # configure AWG PXI trigger in
         for awg in self.awgs:
@@ -139,20 +137,20 @@ class Context:
             with awg._lock:
                 for pxi in pxi_triggers:
                     check_error(awg.awg.FPGATriggerConfig(
-                            pxi,
-                            SD1.SD_FpgaTriggerDirection.IN,
-                            SD1.SD_TriggerPolarity.ACTIVE_LOW,
-                            SD1.SD_SyncModes.SYNC_NONE,
-                            0))
+                        pxi,
+                        SD1.SD_FpgaTriggerDirection.IN,
+                        SD1.SD_TriggerPolarity.ACTIVE_LOW,
+                        SD1.SD_SyncModes.SYNC_NONE,
+                        0))
 
         # configure digitizer PXI trigger out
         for pxi in pxi_triggers:
             check_error(self.digitizers[0].SD_AIN.FPGATriggerConfig(
-                    pxi,
-                    SD1.SD_FpgaTriggerDirection.INOUT,
-                    SD1.SD_TriggerPolarity.ACTIVE_LOW,
-                    SD1.SD_SyncModes.SYNC_NONE,
-                    0))
+                pxi,
+                SD1.SD_FpgaTriggerDirection.INOUT,
+                SD1.SD_TriggerPolarity.ACTIVE_LOW,
+                SD1.SD_SyncModes.SYNC_NONE,
+                0))
 
     def init_pulselib(self, n_gates=0, n_qubits=0, n_markers=0,
                       n_sensors=0, rf_sources=False,
@@ -442,7 +440,7 @@ class Context:
         return ds
 
     def set_mock_data(self,
-                      data: Dict[str, List[Union[float, np.ndarray]]],
+                      data: dict[str, list[float | np.ndarray]],
                       repeat=None):
         if not repeat:
             repeat = 1
