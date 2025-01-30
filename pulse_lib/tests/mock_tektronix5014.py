@@ -1,7 +1,4 @@
-
-import logging
 from dataclasses import dataclass, field
-from typing import Dict
 
 import numpy as np
 import matplotlib.pyplot as pt
@@ -16,7 +13,7 @@ class MockTektronix5014(Instrument):
         super().__init__(name)
         self.visa_handle = VisaHandlerMock(self)
         self.settings = {}
-        self.channel_settings = {ch:{} for ch in [1,2,3,4]}
+        self.channel_settings = {ch: {} for ch in [1, 2, 3, 4]}
         self.waveforms = {}
         self.waveforms_lengths = {}
         self.sequence = []
@@ -92,12 +89,12 @@ class MockTektronix5014(Instrument):
         self.state = 'Running'
 
     def all_channels_off(self):
-        for ch in [1,2,3,4]:
+        for ch in [1, 2, 3, 4]:
             settings = self.channel_settings[ch]
             settings['state'] = 0
 
     def plot(self):
-        for ch in [1,2,3,4]:
+        for ch in [1, 2, 3, 4]:
             settings = self.channel_settings[ch]
             print(self.name, ch, settings)
 
@@ -107,15 +104,16 @@ class MockTektronix5014(Instrument):
             amp = settings.get('amp', 0.0) / 2
             offset = settings.get('offset', 0.0)
             wave_raw = self.waveforms[self.sequence[0].wave_names[ch]]
-            wave_data = (wave_raw & 0x3FFF) # ((wave_raw & 0x3FFF) << 2).astype(np.int16)
+            wave_data = (wave_raw & 0x3FFF)  # ((wave_raw & 0x3FFF) << 2).astype(np.int16)
             wave = offset + amp * (wave_data/2**13 - 1)
             pt.plot(wave, label=f'ch{ch}')
-            if settings.get('m1_high',False):
+            if settings.get('m1_high', False):
                 marker_1 = (wave_raw & 0x4000) >> 14
                 pt.plot(marker_1, ':', label=f'M{ch}.1')
-            if settings.get('m2_high',False):
+            if settings.get('m2_high', False):
                 marker_2 = (wave_raw & 0x8000) >> 15
                 pt.plot(marker_2, ':', label=f'M{ch}.2')
+
 
 class VisaHandlerMock:
     def __init__(self, parent):
@@ -131,10 +129,10 @@ class VisaHandlerMock:
         data = np.frombuffer(msg[data_start:], dtype='<u2')
         self.parent.waveforms[name] = data
 
+
 @dataclass
 class SequenceElement:
-    wave_names: Dict[int,str] = field(default_factory=dict)
+    wave_names: dict[int, str] = field(default_factory=dict)
     goto: int = 0
     wait: bool = False
     loop_cnt: int = 1
-

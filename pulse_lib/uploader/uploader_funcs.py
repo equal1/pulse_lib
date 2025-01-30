@@ -1,7 +1,6 @@
-from typing import List, Tuple
 from numbers import Number
 import logging
-import numpy as np
+
 from pulse_lib.segments.utility.looping import loop_obj
 from pulse_lib.configuration.iq_channels import FrequencyUndefined
 
@@ -23,7 +22,7 @@ def get_iq_nco_idle_frequency(job, qubit_channel, index):
         frequency = job.qubit_resonance_frequencies[qubit_channel.channel_name]
         if isinstance(frequency, loop_obj):
             frequency = frequency.at(index)
-    except:
+    except Exception:
         frequency = qubit_channel.resonance_frequency
     if frequency is FrequencyUndefined:
         return 0.0
@@ -32,7 +31,7 @@ def get_iq_nco_idle_frequency(job, qubit_channel, index):
     return frequency - qubit_channel.iq_channel.LO
 
 
-def merge_markers(marker_name, marker_deltas, marker_value=1, min_off_ns=10) -> List[Tuple[int,int]]:
+def merge_markers(marker_name, marker_deltas, marker_value=1, min_off_ns=10) -> list[tuple[int, int]]:
     '''
     Merge overlapping markers.
 
@@ -48,7 +47,7 @@ def merge_markers(marker_name, marker_deltas, marker_value=1, min_off_ns=10) -> 
     res = []
     s = 0
     t_off = None
-    for t,step in sorted(marker_deltas):
+    for t, step in sorted(marker_deltas):
         s += step
         if s < 0:
             logger.error(f'Marker error {marker_name} at {t} ns')

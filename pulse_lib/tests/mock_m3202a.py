@@ -1,7 +1,6 @@
-import os
 import logging
+import os
 from dataclasses import dataclass
-from typing import List, Tuple
 
 import numpy as np
 import xarray as xr
@@ -11,7 +10,9 @@ import matplotlib.pyplot as pt
 
 from qcodes.instrument.base import Instrument
 
+
 logger = logging.getLogger(__name__)
+
 
 class MemoryManager:
     def __init__(self):
@@ -29,12 +30,13 @@ class MemoryManager:
         self._free_slots.append(slot)
         logger.info(f'freed {slot}: {size}')
 
+
 @dataclass
 class WaveformReference:
     wave_number: int
     size: int
     memory_manager: MemoryManager
-    waveform: List
+    waveform: list
 
     def release(self):
         self.memory_manager.free(self.wave_number)
@@ -105,7 +107,8 @@ class MockM3202A(Instrument):
         logger.info(f'{self.name}.awg_stop({channel})')
 
     def awg_queue_waveform(self, channel, waveform_ref, trigger_mode, start_delay, cycles, prescaler):
-        logger.info(f'{self.name}.awg_queue_waveform({channel}, {waveform_ref.wave_number}, {trigger_mode}, {start_delay}, {cycles}, {prescaler})')
+        logger.info(f"{self.name}.awg_queue_waveform({channel}, {waveform_ref.wave_number}, "
+                    f"{trigger_mode}, {start_delay}, {cycles}, {prescaler})")
         self.channel_data[channel].append(waveform_ref.waveform * self.amplitudes[channel])
         self.channel_prescaler[channel].append(prescaler)
 
@@ -133,7 +136,6 @@ class MockM3202A(Instrument):
         prescaler = int(200e6/sample_rate)
 
         return prescaler
-
 
     @staticmethod
     def convert_prescaler_to_sample_rate(prescaler):
@@ -166,13 +168,12 @@ class MockM3202A(Instrument):
         n_after = round(t_response[-1]*sr)
         return t, d[n_before: -n_after]
 
-
     def plot(self, bias_T_rc_time=0, discrete=False, analogue=False, IQ=False, LO_f=None,
              analogue_shift=0.0):
         iq_data = {}
-        for channel in range(1,5):
+        for channel in range(1, 5):
             data, prescaler = self.get_data_prescaler(channel)
-            #print(f'{self.name}.{channel} data: {[(len(s),p) for s,p in zip(data,prescaler)]}')
+            # print(f'{self.name}.{channel} data: {[(len(s),p) for s,p in zip(data,prescaler)]}')
 
             if len(data) == 0:
                 continue
@@ -182,7 +183,7 @@ class MockM3202A(Instrument):
             t = []
             t0 = 0
             zi = [0]
-            for d,p in zip(data, prescaler):
+            for d, p in zip(data, prescaler):
                 sr = MockM3202A.convert_prescaler_to_sample_rate(p)
                 if analogue:
                     n = round(1e9/sr)
@@ -191,16 +192,16 @@ class MockM3202A(Instrument):
                     if n == 1:
                         wd = d
                     else:
-                        wd = np.repeat(d,n)
+                        wd = np.repeat(d, n)
                 elif p == 0 and not discrete:
                     ts = np.arange(len(d))/sr + t0
                     t0 = ts[-1] + 1/sr
                     wd = d
                 else:
-                    ts = np.arange(len(d)+1)/sr + t0 -0.5e-9
-                    ts = np.repeat(ts,2)[1:-1]
+                    ts = np.arange(len(d)+1)/sr + t0 - 0.5e-9
+                    ts = np.repeat(ts, 2)[1:-1]
                     t0 = ts[-1]
-                    wd = np.repeat(d,2)
+                    wd = np.repeat(d, 2)
 
                 t.append(ts)
                 wave_data.append(wd)
@@ -208,9 +209,9 @@ class MockM3202A(Instrument):
                     alpha = bias_T_rc_time / (bias_T_rc_time + 1/sr)
                     a = [1.0, -alpha]
                     b = [alpha, -alpha]
-                    biased,zi = signal.lfilter(b, a, d, zi=zi)
+                    biased, zi = signal.lfilter(b, a, d, zi=zi)
                     if p:
-                        biased = np.repeat(biased,2)
+                        biased = np.repeat(biased, 2)
                     biased_data.append(biased)
 
             wave = np.concatenate(wave_data)
@@ -219,11 +220,11 @@ class MockM3202A(Instrument):
             if not analogue:
                 pt.plot(t, wave, label=f'{self.name}-{channel}')
             else:
-                t2 = np.concatenate([t-1.0, [t[-1]] ])
-                t2 = np.repeat(t2,2)[1:-1]
-                pt.plot(t2, np.repeat(wave,2), label=f'{self.name}-{channel} digital')
+                t2 = np.concatenate([t-1.0, [t[-1]]])
+                t2 = np.repeat(t2, 2)[1:-1]
+                pt.plot(t2, np.repeat(wave, 2), label=f'{self.name}-{channel} digital')
             if analogue:
-                ta,da = self._upconvert_filtered(t, wave)
+                ta, da = self._upconvert_filtered(t, wave)
                 if IQ:
                     iq_data[channel] = da
                 pt.plot(ta+analogue_shift, da, label=f'{self.name}-{channel} analogue')
@@ -233,7 +234,7 @@ class MockM3202A(Instrument):
         if IQ:
             pt.legend()
             pt.figure()
-            for chI,chQ in [(1,2),(3,4)]:
+            for chI, chQ in [(1, 2), (3, 4)]:
                 if chI not in iq_data or chQ not in iq_data:
                     continue
                 IQ = iq_data[chI] + 1j*iq_data[chQ]
@@ -253,6 +254,7 @@ class MockM3202A_fpga(MockM3202A):
         * local oscillators (TODO)
         * DC compensation (TODO)
     '''
+
     def __init__(self, name, chassis, slot, marker_amplitude=1500):
         super().__init__(name, chassis, slot)
         self.marker_table = []
@@ -261,7 +263,7 @@ class MockM3202A_fpga(MockM3202A):
     def configure_marker_output(self, invert: bool = False):
         pass
 
-    def load_marker_table(self, table:List[Tuple[int,int]]):
+    def load_marker_table(self, table: list[tuple[int, int]]):
         '''
         Args:
             table: list with tuples (time on, time off)
@@ -272,7 +274,7 @@ class MockM3202A_fpga(MockM3202A):
         pass
 
     def config_lo(self, awg_ch, osc_num, enable, frequency, amplitude):
-        pass # TODO: add to plotting.
+        pass  # TODO: add to plotting.
 
     def plot_marker(self):
         if len(self.marker_table) > 0:

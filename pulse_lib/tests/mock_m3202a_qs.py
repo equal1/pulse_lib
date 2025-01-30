@@ -1,5 +1,3 @@
-import logging
-from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass, field
 from numbers import Number
 
@@ -23,31 +21,35 @@ MarkerChannel
 '''
 
 # for QuantumSequencerInstrument
-#class ChannelPair:
+# class ChannelPair:
 #    _12 = 12
 #    _34 = 34
 #
-#class ChannelMode:
+# class ChannelMode:
 #    BB = 1
 #    IQ = 2
 
+
 def not_none(value, default):
     return default if value is None else value
+
 
 @dataclass
 class InstructionBase:
     address: int
     wait_after: float
-    jump_address: Optional[int] = None
+    jump_address: int | None = None
+
 
 @dataclass
 class AwgInstruction(InstructionBase):
-    wave_number: Optional[int] = None
+    wave_number: int | None = None
+
 
 @dataclass
 class AwgConditionalInstruction(InstructionBase):
-    wave_numbers: List[int] = field(default_factory=list)
-    condition_register: Optional[int] = None
+    wave_numbers: list[int] = field(default_factory=list)
+    condition_register: int | None = None
 
 
 @dataclass
@@ -55,23 +57,23 @@ class Waveform:
     offset: int
     duration: int
     amplitude: float
-    am_envelope: Union[np.ndarray, float]
+    am_envelope: np.ndarray | float
     frequency: float
-    pm_envelope: Union[np.ndarray, float]
-    prephase: Optional[float]
-    postphase: Optional[float]
+    pm_envelope: np.ndarray | float
+    prephase: float | None
+    postphase: float | None
     start_frequency: float
     end_frequency: float
     append_zero: bool
 
-    def render(self, starttime, phase): # @@@ use LO i.s.o. phase
+    def render(self, starttime, phase):  # @@@ use LO i.s.o. phase
         if not self.amplitude:
             return np.zeros(0)
         amplitude = self.amplitude
         t = starttime + self.offset + np.arange(self.duration)
         phase = phase + not_none(self.prephase, 0) + not_none(self.pm_envelope, 0)
         modulated_wave = 0.001 * amplitude * np.sin(2*np.pi*self.frequency*1e-9*t + phase)
-        if  isinstance(phase, Number):
+        if isinstance(phase, Number):
             phase_str = f'{phase:5.2f}'
         else:
             phase_str = f'array({len(phase)}'
@@ -90,7 +92,7 @@ class Waveform:
             amplitude[self.offset:] = self.amplitude/1500 * self.am_envelope
 
         # @@@ phase correction sample if self.postphase or self.pm_envelope[-1] != 0.0
-        if self.postphase: # not None and not 0.0
+        if self.postphase:  # not None and not 0.0
             extension = 2
         elif add_pm and self.pm_envelope[-1] != 0.0:
             extension = 2
@@ -114,14 +116,14 @@ class Waveform:
             frequency[i_start:i_end] += pm
             frequency[i_start+1:i_end+1] -= pm
             frequency = (frequency + 1) % 2 - 1
-        if self.prephase: # not None and not 0.0
+        if self.prephase:  # not None and not 0.0
             # phase step per sample is [-1.0, 1.0] for [-pi, +pi]
             f_step = frequency[self.offset]
             phase_step = self.prephase/np.pi
             # map total phase step to [-1, +1]
             step = (f_step + phase_step + 1) % 2 - 1
             frequency[self.offset] = step
-        if self.postphase: # not None and not 0.0
+        if self.postphase:  # not None and not 0.0
             f_step = frequency[-2]
             phase_step = self.postphase/np.pi
             # map total phase step to [-1, +1]
@@ -190,15 +192,15 @@ class SequencerChannel:
         if postphase is None:
             postphase = 0.0
         self._waveforms[number] = Waveform(offset, duration, amplitude, am_envelope,
-                       frequency, pm_envelope, prephase, postphase,
-                       self._frequency,
-                       self._frequency if restore_frequency else frequency,
-                       append_zero)
+                                           frequency, pm_envelope, prephase, postphase,
+                                           self._frequency,
+                                           self._frequency if restore_frequency else frequency,
+                                           append_zero)
 
     def flush_waveforms(self):
         self._waveforms = [None]*64
 
-    def load_schedule(self, schedule:List[AwgInstruction]):
+    def load_schedule(self, schedule: list[AwgInstruction]):
         self._schedule = schedule
 
     def _plot(self, phase, label):
@@ -244,18 +246,18 @@ class SequencerChannel:
         pt.plot(np.arange(len(wave)), wave, label=label)
 
     def plot(self):
-#        pt.figure(self._number)
-#        print(f'seq {self._number}')
-        if self._components=='IQ':
+        # pt.figure(self._number)
+        # print(f'seq {self._number}')
+        if self._components == 'IQ':
             self._plot(self._phaseI/180*np.pi, label=f'{self._instrument.name}-{self._number}.I')
             self._plot(self._phaseQ/180*np.pi, label=f'{self._instrument.name}-{self._number}.Q')
-        elif self._components=='I':
+        elif self._components == 'I':
             self._plot(self._phaseI/180*np.pi, label=f'{self._instrument.name}-{self._number}')
-        elif self._components=='Q':
+        elif self._components == 'Q':
             self._plot(self._phaseQ/180*np.pi, label=f'{self._instrument.name}-{self._number}')
 
     def describe(self):
-        n_wvf = sum(map(lambda x:x is not None, self._waveforms))
+        n_wvf = sum(map(lambda x: x is not None, self._waveforms))
         if len(self._schedule) == 0 and n_wvf == 0:
             return
         print(f'seq {self._number} schedule')
@@ -267,20 +269,21 @@ class SequencerChannel:
             if wvf is not None:
                 wvf.describe()
 
+
 class MockM3202A_QS(MockM3202A):
     '''
     Quantum Sequencer version of M3202A mock
     '''
+
     def __init__(self, name, chassis, slot, marker_amplitude=1000):
         super().__init__(name, chassis, slot)
 
         self._sequencers = {}
-        for i in range(1,13):
+        for i in range(1, 13):
             self._sequencers[i] = SequencerChannel(self, i)
 
         self.marker_table = []
         self._marker_amplitude = marker_amplitude
-
 
     def get_sequencer(self, number):
         return self._sequencers[number]
@@ -313,16 +316,15 @@ class MockM3202A_QS(MockM3202A):
             seq.plot()
         self.plot_marker()
 
-
     def describe(self):
-        for i,seq in self._sequencers.items():
+        for i, seq in self._sequencers.items():
             seq.describe()
         print('Markers:', self.marker_table)
 
     def configure_marker_output(self, invert: bool = False):
         pass
 
-    def load_marker_table(self, table:List[Tuple[int,int]]):
+    def load_marker_table(self, table: list[tuple[int, int]]):
         '''
         Args:
             table: list with tuples (time on, time off)
@@ -341,7 +343,6 @@ class MockM3202A_QS(MockM3202A):
         prescaler = int(200e6/sample_rate)
 
         return prescaler
-
 
     @staticmethod
     def convert_prescaler_to_sample_rate(prescaler):

@@ -1,29 +1,29 @@
-
 import logging
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
-
-import numpy as np
-import matplotlib.pyplot as pt
 
 from .mock_m3102a import MockM3102A
 
+
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class InstructionBase:
     address: int
     wait_after: float
-    jump_address: Optional[int] = None
+    jump_address: int | None = None
+
 
 # NOTE: n_cycles > 1 cannot be combined with threshold
+
+
 @dataclass
 class DigitizerInstruction(InstructionBase):
-    t_measure: Optional[float] = None
+    t_measure: float | None = None
     n_cycles: int = 1
-    threshold: Optional[float] = None
-    pxi: Optional[int] = None
-    measurement_id: Optional[int] = None
+    threshold: float | None = None
+    pxi: int | None = None
+    measurement_id: int | None = None
 
     def __str__(self):
         s = f'{self.address:2}: {str(self.t_measure):4}, wait_after {self.wait_after}'
@@ -42,8 +42,7 @@ class SequencerChannel:
         self._number = number
         self._schedule = []
 
-
-    def load_schedule(self, schedule:List[DigitizerInstruction]):
+    def load_schedule(self, schedule: list[DigitizerInstruction]):
         self._schedule = schedule
 
     def describe(self):
@@ -59,7 +58,7 @@ class MockM3102A_QS(MockM3102A):
         super().__init__(name, chassis, slot)
 
         self._sequencers = {}
-        for i in range(1,5):
+        for i in range(1, 5):
             self._sequencers[i] = SequencerChannel(self, i)
 
     def get_sequencer(self, number):
@@ -70,6 +69,5 @@ class MockM3102A_QS(MockM3102A):
         pass
 
     def describe(self):
-        for i,seq in self._sequencers.items():
+        for i, seq in self._sequencers.items():
             seq.describe()
-
