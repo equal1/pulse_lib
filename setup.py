@@ -11,7 +11,7 @@ setup(name="pulse_lib",
     python_requires=">=3.10",
     install_requires=[
             'qcodes >= 0.27.0',
-            'numpy >= 1.24, < 2.0',
+            'numpy >= 1.24',
             'scipy',
             ],
     license='MIT',
