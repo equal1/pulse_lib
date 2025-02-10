@@ -1,10 +1,11 @@
 
 from pulse_lib.tests.configurations.test_configuration import context
 
-#%%
+# %%
 import numpy as np
 
 from pulse_lib.segments.utility import looping as lp
+
 
 def get_AM_envelope(delta_t: float, sample_rate: float):
     npt = int(delta_t*sample_rate + 0.5)
@@ -14,7 +15,6 @@ def get_AM_envelope(delta_t: float, sample_rate: float):
 def get_AM_envelope2(delta_t: float, sample_rate: float, alpha: float):
     npt = int(delta_t*sample_rate + 0.5)
     return np.linspace(alpha, 1.0, npt)
-
 
 
 def test1():
@@ -96,7 +96,7 @@ class IQ_modulation:
         iq = np.zeros(self.length, dtype=complex)
         size = self.segment_length
         for i in range(self.n_segments):
-            iq[i*size : (i+1)*size] = i_values[i] + 1j*q_values[i]
+            iq[i*size: (i+1)*size] = i_values[i] + 1j*q_values[i]
 
         return iq
 
@@ -141,10 +141,10 @@ def testIQloop():
     return None
 
 
+# %%
 
-#%%
 
 if __name__ == '__main__':
-    # ds1 = test1()
-    # ds2 = test2()
+    ds1 = test1()
+    ds2 = test2()
     testIQloop()

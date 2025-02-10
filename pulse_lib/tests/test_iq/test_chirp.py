@@ -7,6 +7,7 @@ def test1():
     pulse = context.init_pulselib(n_qubits=1)
 
     pulse.set_iq_lo('IQ1', 0.0)
+    pulse.qubit_channels['q1'].resonance_frequency = 0.0
 
     s = pulse.mk_segment()
 
