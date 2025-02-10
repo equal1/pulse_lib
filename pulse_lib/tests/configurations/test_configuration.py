@@ -237,11 +237,11 @@ class Context:
                 iq_channel_name = f'IQ{i+1}'
                 if i == 0:
                     iq_marker = 'M_IQ1'
-                    self._add_marker(iq_marker, setup_ns=50, hold_ns=20)
+                    self._add_marker(iq_marker, setup_ns=40, hold_ns=20)
                     pulse.add_channel_delay(iq_marker, -20)
                 elif i == 1:
                     iq_marker = 'M_IQ2'
-                    self._add_marker(iq_marker, setup_ns=50, hold_ns=20)
+                    self._add_marker(iq_marker, setup_ns=40, hold_ns=20)
                     pulse.add_channel_delay(iq_marker, -20)
                 else:
                     iq_marker = ''
