@@ -459,14 +459,16 @@ class Job(object):
         # process feedback events
         events = []
         for channel_name, measurements in condition_measurements.measurement_acquisitions.items():
+            t_reset = 0
             for m in measurements:
                 try:
                     fb = condition_measurements.feedback_events[id(m)]
                     events.append((self._at_index(fb.set_times), channel_name, 'latch-enable'))
-                    events.append((self._at_index(fb.reset_times), channel_name, 'reset'))
+                    t_reset = self._at_index(fb.reset_times)
+                    events.append((t_reset, channel_name, 'reset'))
                 except KeyError:
-                    t = condition_measurements.get_end_time(m, self.index)
-                    events.append((t, channel_name, 'latch-disable'))
+                    # t = condition_measurements.get_end_time(m, self.index)
+                    events.append((t_reset, channel_name, 'latch-disable'))
 
         logger.debug(f'Latch events {events}')
         latch_events = []
