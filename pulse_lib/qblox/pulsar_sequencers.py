@@ -296,8 +296,6 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
             t_offset = 0
 
         n_pt = i_end - i_start
-        # if self._hres:
-        #     n_pt += 1
         t = t_offset + np.arange(n_pt)
         w = 2*np.pi*frequency*1e-9
         sine_data = amplitude * np.sin(w*t + phase)
@@ -307,21 +305,29 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
             sine_data[0] = frac_start * sine_data[0]
             sine_data[-1] = frac_end * sine_data[-1]
 
-            # sine_data[0] = frac_start * amplitude * np.sin(phase)
-            # if frac_end < 0.999:
-            #     sine_data[-2] = frac_end * sine_data[-2]
-            #     sine_data[-1] = frac_end * (amplitude*np.sin(w*iround(t_end-t_start-1)+phase) - sine_data[-2])
-            # else:
-            #     pass
-
         self._emit_waveform_part(t_start)
         self._add_waveform_data(i_start, sine_data)
 
     def custom_pulse(self, t_start, t_end, amplitude, custom_pulse):
-        t_start = iround(t_start)
-        data = custom_pulse.render(sample_rate=1e9) * amplitude
+        if self._hres and custom_pulse.hres_rendering:
+            t_start = PulsarConfig.hres_round(t_start)
+            t_end = PulsarConfig.hres_round(t_end)
+            i_start = math.floor(t_start + 1e-5)
+            i_end = math.ceil(t_end - 1e-5)
+            t_offset = i_start - t_start
+            n_pt = i_end - i_start
+            t = t_offset + np.arange(n_pt)
+            data = custom_pulse.render_hres(sample_rate=1e9, t=t) * amplitude
+            frac_start = i_start + 1 - t_start
+            frac_end = 1 - i_end + t_end
+            data[0] *= frac_start
+            data[-1] *= frac_end
+        else:
+            t_start = iround(t_start)
+            i_start = t_start
+            data = custom_pulse.render(sample_rate=1e9) * amplitude
         self._emit_waveform_part(t_start)
-        self._add_waveform_data(t_start, data)
+        self._add_waveform_data(i_start, data)
 
     def wait_till(self, t):
         if self.verbose:

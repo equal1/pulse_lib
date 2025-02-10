@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.40] - 2025-02-10
+
+- Added name to setpoints and sequence index_parameter.
+- Added `add_custom_pulse_v2` for high resolution custom pulses.
+- Removed constraint numpy < 2.0
+
 ## \[1.7.39] - 2025-01-22
 
 - Added Qblox low pass filter on acquisition.
