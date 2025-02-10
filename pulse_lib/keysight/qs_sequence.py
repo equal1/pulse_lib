@@ -119,8 +119,7 @@ class IQSequenceBuilder:
         self._add_phase_shift(t, phase_shift)
 
     def pulse(self, t_pulse, iq_pulse):
-        if (iq_pulse.envelope.AM_envelope_function is None
-                and iq_pulse.envelope.PM_envelope_function is None
+        if (iq_pulse.envelope is None
                 and (iq_pulse.stop - iq_pulse.start > 200)):
             # split long pulses in start + stop pulse (Rabi)
             duration = iround(iq_pulse.stop - iq_pulse.start)
@@ -192,12 +191,12 @@ class IQSequenceBuilder:
         end_frequency = chirp.stop_frequency - self.lo_freq
         if abs(end_frequency) > 450e6:
             raise Exception(f'Chirp NCO frequency {end_frequency/1e6:5.1f} MHz is out of range')
-        ph_gen = chirp.phase_mod_generator()
+        ph_mod = chirp.get_phase_modulation(duration, 1.0)
         return Waveform(
             chirp.amplitude / self.attenuation,
             1.0,
             frequency,
-            ph_gen(duration, 1.0),
+            ph_mod,
             0,
             0,
             duration)

@@ -17,8 +17,8 @@ class envelope_generator():
         """
         define envelope funnctions.
         Args
-            AM_envelope_function ('str/tuple/function') : function describing an amplitude modulation (see examples in pulse_lib.segments.data_classes.data_IQ)
-            PM_envelope_function ('str/tuple/function') : function describing an phase modulation (see examples in pulse_lib.segments.data_classes.data_IQ)
+            AM_envelope_function ('str/tuple/function') : function describing an amplitude modulation
+            PM_envelope_function ('str/tuple/function') : function describing an phase modulation
             kwargs: keyword arguments passed into the AM and PM functions.
         """
         self.AM_envelope_function = AM_envelope_function
@@ -38,7 +38,7 @@ class envelope_generator():
         """
 
         n_points = delta_t*sample_rate
-        if n_points < 1: # skip
+        if n_points < 1:  # skip
             return 0.0
 
         if self.AM_envelope_function is None:
@@ -63,7 +63,7 @@ class envelope_generator():
         """
 
         n_points = delta_t*sample_rate
-        if n_points < 1: # skip
+        if n_points < 1:  # skip
             return 0
 
         if self.PM_envelope_function is None:
@@ -76,48 +76,17 @@ class envelope_generator():
         return envelope
 
 
-def make_chirp(f_start: float, f_stop: float, time0: float, time1: float):
-    '''
-    Make a chirp.
-
-    Args:
-        f_start (float) : start frequency (Hz)
-        f_stop (stop frequency) : stop frequency (Hz)
-    '''
-
-    chirp_constant = (f_stop - f_start)/(time1*1e-9-time0*1e-9)/2
-
-    def my_chirp(delta_t: float, sample_rate: float = 1.0):
-        """
-        Function that makes a phase envelope to make a chirped pulse
-
-        Args:
-            delta_t (double) : time in ns of the pulse.
-            sample_rate (double) : sampling rate of the pulse (GS/s).
-
-        Returns:
-            evelope (np.ndarray) : array of the evelope.
-        """
-
-        n_points = int(delta_t*sample_rate + 0.9)
-        t = np.linspace(0, n_points/sample_rate*1e-9, n_points)
-        out = 2*np.pi*chirp_constant*t*t
-        return out
-
-    return my_chirp
-
-
 @dataclass
 class IQ_data_single:
-    start : float = 0.0
-    stop : float = 0.0
-    amplitude : float = 1.0
-    frequency : float = 0.0
-    phase_offset : float = 0.0
+    start: float = 0.0
+    stop: float = 0.0
+    amplitude: float = 1.0
+    frequency: float = 0.0
+    phase_offset: float = 0.0
     ''' offset from coherent pulse  '''
-    envelope : envelope_generator = None
-    ref_channel : str = None
-    coherent_pulsing : bool = True
+    envelope: envelope_generator = None
+    ref_channel: str = None
+    coherent_pulsing: bool = True
 
     @property
     def start_phase(self):
@@ -127,19 +96,30 @@ class IQ_data_single:
 
 @dataclass
 class Chirp:
-    start : float
-    stop : float
-    amplitude : float
-    start_frequency : float
-    stop_frequency : float
-    ref_channel : str = None
-    phase : float = 0.0
+    start: float
+    stop: float
+    amplitude: float
+    start_frequency: float
+    stop_frequency: float
+    ref_channel: str = None
+    phase: float = 0.0
     ''' Phase of the chirp. Only used for I/Q rendering. '''
 
-    def phase_mod_generator(self):
-        return make_chirp(self.start_frequency,
-                          self.stop_frequency,
-                          self.start, self.stop)
+    def get_phase_modulation(self, delta_t: float, sample_rate: float):
+        """
+        Args:
+            delta_t: [ns]
+            sample_rate: [GSa/s]
+        """
+        f_start = self.start_frequency
+        f_stop = self.stop_frequency
+        t_start = self.start
+        t_stop = self.stop
+
+        chirp_constant = (f_stop - f_start)/(t_stop*1e-9-t_start*1e-9)/2
+        n_points = int(delta_t*sample_rate + 0.9)
+        t = np.linspace(0, n_points/sample_rate*1e-9, n_points)
+        return 2*np.pi*chirp_constant*t*t
 
 
 if __name__ == '__main__':
@@ -172,7 +152,7 @@ if __name__ == '__main__':
     # plt.ylabel("amp (a.u.)")
 
     # make your own envelope
-    def gaussian_sloped_envelope(delta_t, sample_rate = 1):
+    def gaussian_sloped_envelope(delta_t, sample_rate=1):
         """
         function that has blackman slopes at the start and at the end (first 8 and last 8 ns)
 
@@ -209,10 +189,10 @@ if __name__ == '__main__':
     data_4 = env.get_AM_envelope(21.5)
 
     plt.figure("custom windowing function")
-    plt.plot(data_1, label = "20.0 ns pulse")
-    plt.plot(data_2, label = "20.2 ns pulse")
-    plt.plot(data_3, label = "20.4 ns pulse")
-    plt.plot(data_4, label = "20.6 ns pulse")
+    plt.plot(data_1, label="20.0 ns pulse")
+    plt.plot(data_2, label="20.2 ns pulse")
+    plt.plot(data_3, label="20.4 ns pulse")
+    plt.plot(data_4, label="20.6 ns pulse")
     plt.legend()
     plt.xlabel("time (ns)")
     plt.ylabel("amp (a.u.)")

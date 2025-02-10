@@ -33,6 +33,7 @@ class segment_IQ(segment_base):
     Standard single segment for IQ purposes
     todo --> add global phase and time shift in the data class instead of this one (cleaner and more generic).
     """
+
     def __init__(self, name, qubit_channel):
         '''
         Args:
@@ -41,7 +42,7 @@ class segment_IQ(segment_base):
         Tip, make on of these segments for each qubit. Then you get a very clean implementation of reference frame changes!
         '''
         # @@@ Fix segment_type with rendering refactoring
-        super().__init__(name, pulse_data()) #, segment_type = 'IQ_virtual')
+        super().__init__(name, pulse_data())  # , segment_type = 'IQ_virtual')
         self._qubit_channel = qubit_channel
 
     def __copy__(self):
@@ -54,7 +55,7 @@ class segment_IQ(segment_base):
         return self.data_tmp
 
     @loop_controller
-    def add_MW_pulse(self, t0, t1, amp, freq, phase = 0, AM = None, PM = None, **kwargs):
+    def add_MW_pulse(self, t0, t1, amp, freq, phase=0, AM=None, PM=None, **kwargs):
         '''
         Make a sine pulse (generic constructor)
 
@@ -64,15 +65,19 @@ class segment_IQ(segment_base):
             amp (float) : amplitude of the pulse.
             freq(float) : frequency
             phase (float) : phase of the microwave.
-            AM ('str/tuple/function') : function describing an amplitude modulation (see examples in pulse_lib.segments.data_classes.data_IQ)
-            PM ('str/tuple/function') : function describing an phase modulation (see examples in pulse_lib.segments.data_classes.data_IQ)
+            AM ('str/tuple/function') : function describing an amplitude modulation
+            PM ('str/tuple/function') : function describing an phase modulation
             kwargs: keyword arguments passed into the AM and PM functions.
         '''
+        if AM is not None or PM is not None:
+            envelope = envelope_generator(AM, PM, kwargs)
+        else:
+            envelope = None
         MW_data = IQ_data_single(t0 + self.data_tmp.start_time,
                                  t1 + self.data_tmp.start_time,
                                  amp, freq,
                                  phase,
-                                 envelope_generator(AM, PM, kwargs),
+                                 envelope,
                                  self.name)
         self.data_tmp.add_MW_data(MW_data)
         return self.data_tmp
@@ -155,7 +160,7 @@ if __name__ == '__main__':
 
     from scipy import signal
 
-    def gaussian_sloped_envelope(delta_t, sample_rate = 1):
+    def gaussian_sloped_envelope(delta_t, sample_rate=1):
         """
         function that has blackman slopes at the start and at the end (first 8 and last 8 ns)
 
@@ -185,8 +190,8 @@ if __name__ == '__main__':
 
     s1 = segment_IQ("test")
 
-    s1.add_MW_pulse(0,100,1,1e9,0, gaussian_sloped_envelope)
+    s1.add_MW_pulse(0, 100, 1, 1e9, 0, gaussian_sloped_envelope)
     s1.reset_time()
     # s1.add_chirp(1500,2500,0e7,1e7,1)
-    s1.plot_segment(sample_rate = 1e10)
+    s1.plot_segment(sample_rate=1e10)
     plt.show()

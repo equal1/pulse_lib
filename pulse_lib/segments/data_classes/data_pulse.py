@@ -11,9 +11,8 @@ from typing import Callable
 import numpy as np
 
 from pulse_lib.segments.utility.rounding import iround
-from pulse_lib.segments.data_classes.data_generic import parent_data
-from pulse_lib.segments.data_classes.data_IQ import envelope_generator
-
+from .data_generic import parent_data
+from .data_IQ import envelope_generator
 
 logger = logging.getLogger(__name__)
 
@@ -70,21 +69,34 @@ class custom_pulse_element:
     start: float
     stop: float
     amplitude: float
-    func: Callable[..., np.ndarray]
-    kwargs: dict[str, any]
+    func: Callable[[float, float, float, ...], np.ndarray] = None
+    func_v2: Callable[[np.ndarray, float, float, ...], np.ndarray] = None
+    kwargs: dict[str, any] = None
     scaling: int = 1.0
+
+    def __post_init__(self):
+        self.hres_rendering = self.func_v2 is not None
 
     def render(self, sample_rate):
         duration = self.stop - self.start
-        data = self.func(duration, sample_rate, self.amplitude, **self.kwargs)
+        if self.func:
+            data = self.func(duration, sample_rate, self.amplitude, **self.kwargs)
+        else:
+            t_sample = 1e9/sample_rate
+            t = np.arange(0, duration, t_sample)
+            data = self.func_v2(t, duration, self.amplitude, **self.kwargs)
         return data*self.scaling
 
-
-@dataclass
-class rendered_element:
-    start: int
-    stop: int
-    wvf: np.ndarray = None
+    def render_hres(self, sample_rate, t: np.ndarray | None = None):
+        duration = self.stop - self.start
+        if self.func:
+            raise Exception("Pulse-lib internal error rendering custom pulse")
+        else:
+            if t is None:
+                t_sample = 1e9/sample_rate
+                t = np.arange(0, duration, t_sample)
+            data = self.func_v2(t, duration, self.amplitude, **self.kwargs)
+        return data*self.scaling
 
 
 def shift_start_stop(data: list[any], delta) -> None:
@@ -775,10 +787,25 @@ class pulse_data(parent_data):
                 wvf[start_pt:stop_pt] += sine_data
 
         for custom_pulse in self.custom_pulse_data:
-            data = custom_pulse.render(sample_rate*1e9)
-            start_pt = iround(custom_pulse.start * sample_rate)
-            stop_pt = start_pt + len(data)
-            wvf[start_pt:stop_pt] += data
+            if not self._hres or not custom_pulse.hres_rendering:
+                data = custom_pulse.render(sample_rate*1e9)
+                start_pt = iround(custom_pulse.start * sample_rate)
+                stop_pt = start_pt + len(data)
+                wvf[start_pt:stop_pt] += data
+            else:
+                start_pulse = custom_pulse.start
+                stop_pulse = custom_pulse.stop
+                start_pt = math.floor(start_pulse * sample_rate + 1e-5)
+                stop_pt = math.ceil(stop_pulse * sample_rate - 1e-5)
+                n_pt = stop_pt - start_pt
+                t_offset = start_pt - start_pulse * sample_rate
+                t = t_offset + np.arange(n_pt)
+                data = custom_pulse.render_hres(sample_rate*1e9, t)
+                frac_start = start_pt + 1 - start_pulse * sample_rate
+                frac_stop = 1 - stop_pt + stop_pulse * sample_rate
+                data[0] *= frac_start
+                data[-1] *= frac_stop
+                wvf[start_pt:stop_pt] += data
 
         for chirp in self.chirp_data:
             start_pulse = chirp.start
@@ -795,8 +822,7 @@ class pulse_data(parent_data):
             stop_pt = start_pt + n_pt
 
             t = start_pt + np.arange(n_pt)
-            phgen = chirp.phase_mod_generator()
-            phase_envelope = chirp.phase + phgen((stop_pulse - start_pulse), sample_rate)
+            phase_envelope = chirp.phase + chirp.get_phase_modulation((stop_pulse - start_pulse), sample_rate)
             wvf[start_pt:stop_pt] += amp*np.sin(2*np.pi*freq/sample_rate*1e-9*t + phase_envelope)
 
         # remove last value. t_tot_pt = t_tot + 1. Last value is always 0. It is only needed in the loop on the pulses.
@@ -808,93 +834,6 @@ class pulse_data(parent_data):
             phase += shift.phase_shift
         # print(f'accumulated {phase} ({len(self.phase_shifts)})')
         return phase
-
-    def _merge_elements(self, elements):
-        if len(elements) < 1:
-            return elements
-        elements.sort(key=lambda e: e.start)
-        result = []
-        last = elements[0]
-        for element in elements[1:]:
-            if element.start < last.stop:
-                nw_wvf = np.zeros(element.stop - last.start)
-                nw_wvf[:len(last.wvf)] = last.wvf
-                nw_wvf[-len(element.wvf):] += element.wvf
-                last = rendered_element(last.start, element.stop, nw_wvf)
-            else:
-                result.append(last)
-                last = element
-        result.append(last)
-        return result
-
-    def render_MW_and_custom(self, sample_rate, ref_channel_states):  # @@@ Is this method used anywhere?
-        '''
-        Render MW pulses and custom data in 'rendered_elements'.
-        '''
-        elements = []
-
-        self._pre_process()
-
-        # express in Gs/s
-        sample_rate = sample_rate*1e-9
-
-        # render MW pulses.
-        # create list with phase shifts per ref_channel
-        phase_shifts_channels = {}
-        for ps in self.phase_shifts:
-            ps_ch = phase_shifts_channels.setdefault(ps.channel_name, [])
-            ps_ch.append(ps)
-
-        for mw_pulse in self.MW_pulse_data:
-            # start stop time of MW pulse
-
-            start_pulse = mw_pulse.start
-            stop_pulse = mw_pulse.stop
-
-            # max amp, freq and phase.
-            amp = mw_pulse.amplitude
-            freq = mw_pulse.frequency
-            phase = mw_pulse.phase_offset
-            if ref_channel_states and mw_pulse.ref_channel in ref_channel_states.start_phase:
-                ref_start_time = ref_channel_states.start_time
-                ref_start_phase = ref_channel_states.start_phase[mw_pulse.ref_channel]
-                phase_shift = 0
-                if mw_pulse.ref_channel in phase_shifts_channels:
-                    for ps in phase_shifts_channels[mw_pulse.ref_channel]:
-                        if ps.time <= start_pulse:
-                            phase_shift += ps.phase_shift
-            else:
-                ref_start_time = 0
-                ref_start_phase = 0
-                phase_shift = 0
-
-            # envelope data of the pulse
-            if mw_pulse.envelope is None:
-                mw_pulse.envelope = envelope_generator()
-
-            amp_envelope = mw_pulse.envelope.get_AM_envelope((stop_pulse - start_pulse), sample_rate)
-            phase_envelope = mw_pulse.envelope.get_PM_envelope((stop_pulse - start_pulse), sample_rate)
-
-            # self.baseband_pulse_data[-1,0] convert to point numbers
-            n_pt = (int((stop_pulse - start_pulse) * sample_rate)
-                    if isinstance(amp_envelope, float)
-                    else len(amp_envelope))
-            start_pt = iround(start_pulse * sample_rate)
-            stop_pt = start_pt + n_pt
-
-            # add the sin pulse
-            total_phase = phase_shift + phase + phase_envelope + ref_start_phase
-            t = start_pt+ref_start_time/sample_rate + np.arange(n_pt)
-            wvf = amp*amp_envelope*np.sin(2*np.pi*freq/sample_rate*1e-9*t + total_phase)
-            elements.append(rendered_element(start_pt, stop_pt, wvf))
-
-        for custom_pulse in self.custom_pulse_data:
-            wvf = custom_pulse.render(sample_rate*1e9)
-            start_pt = iround(custom_pulse.start * sample_rate)
-            stop_pt = start_pt + len(wvf)
-            elements.append(rendered_element(start_pt, stop_pt, wvf))
-
-        return self._merge_elements(elements)
 
     def get_metadata(self, name):
         metadata = {}
