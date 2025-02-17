@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.41] - 2025-02-17
+
+- Fixed bug with ramp > 100 ns ending at multiple of 4 ns followed by constant voltage of 0.0 V with duration >= 4 ns
+- Ignore pulses (block, sine, custom) with amplitude of 0.0 V.
+
 ## \[1.7.40] - 2025-02-10
 
 - Added name to setpoints and sequence index_parameter.
