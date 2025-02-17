@@ -245,11 +245,12 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
                     self.set_offset(t_start, 0, v_end)
             return
 
-        if abs(v_start) < _lsb_step and abs(v_end) < _lsb_step:
-            # nothing to render
-            if not self._rendering:
-                self._set_offset(t_start, 0.0)
-            return
+        # DISABLED OPTIMIZATION! It fails on various edge cases.
+        # if abs(v_start) < _lsb_step and abs(v_end) < _lsb_step:
+        #     # nothing to render: early exit...
+        #     if not self._rendering and PulsarConfig.offset(t_start) == 0:
+        #         self._set_offset(int(t_start), self.v_compensation)
+        #     return
 
         is_long = (t_end - max(t_start, self._t_wave_end)) > 40
 
@@ -991,6 +992,12 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
                 self._data_scaling[-n:] = [scaling] * n
         else:
             self._data_scaling += [scaling] * n
+
+    def _update_time(self, t, duration):
+        if t < self.t_end:
+            logger.error(f"queued commands:{self._commands}")
+            raise Exception(f'Overlapping pulses {t} < {self.t_end} ({self.name})')
+        super()._update_time(t, duration)
 
     def _add_command(self, t, func, *args, **kwargs):
         self._commands.append(_SeqCommand(t, func, args, kwargs))
