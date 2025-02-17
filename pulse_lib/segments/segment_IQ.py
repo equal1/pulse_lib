@@ -1,24 +1,4 @@
-'''
-Class that can be used to construct IQ pulses for qubit control applications.
-
-Possible pulses include:o
-* standard block pulse
-* chirped pulse for adiabatic spin operation
-* modulated pulsed.
-
-As data format we will use a class to store
-* type (std, chrip, mod)
-* t0
-* te
-* freq1
-* freq2 (opt)
-* amp
-* phase
-
-TODO : change dicts to keep the data to an object!!
-'''
 import numpy as np
-import copy
 
 from pulse_lib.segments.segment_base import segment_base
 from pulse_lib.segments.utility.data_handling_functions import loop_controller, update_dimension
@@ -31,15 +11,12 @@ from pulse_lib.segments.data_classes.data_generic import data_container
 class segment_IQ(segment_base):
     """
     Standard single segment for IQ purposes
-    todo --> add global phase and time shift in the data class instead of this one (cleaner and more generic).
     """
 
     def __init__(self, name, qubit_channel):
         '''
         Args:
             name : name of the IQ segment
-
-        Tip, make on of these segments for each qubit. Then you get a very clean implementation of reference frame changes!
         '''
         # @@@ Fix segment_type with rendering refactoring
         super().__init__(name, pulse_data())  # , segment_type = 'IQ_virtual')
@@ -69,6 +46,9 @@ class segment_IQ(segment_base):
             PM ('str/tuple/function') : function describing an phase modulation
             kwargs: keyword arguments passed into the AM and PM functions.
         '''
+        if amp == 0.0:
+            return self.data_tmp
+
         if AM is not None or PM is not None:
             envelope = envelope_generator(AM, PM, kwargs)
         else:

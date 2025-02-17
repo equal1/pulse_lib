@@ -38,6 +38,8 @@ class segment_pulse(segment_base):
         '''
         add a block pulse on top of the existing pulse.
         '''
+        if amplitude == 0.0:
+            return self.data_tmp
         self.data_tmp.add_delta(pulse_delta(start + self.data_tmp.start_time,
                                             step=amplitude))
         self.data_tmp.add_delta(pulse_delta(stop + self.data_tmp.start_time if stop != -1 else np.inf,
@@ -114,6 +116,8 @@ class segment_pulse(segment_base):
             freq (double) : frequency of the pulse
             phase_offset (double) : offset in phase
         '''
+        if amp == 0.0:
+            return self.data_tmp
         self.data_tmp.add_MW_data(IQ_data_single(start + self.data_tmp.start_time,
                                                  stop + self.data_tmp.start_time,
                                                  amp, freq,
@@ -150,6 +154,8 @@ class segment_pulse(segment_base):
 
             seg.P1.add_custom_pulse_v2(0, 10, 142.0, hamming_pulse, alpha=0.54)
         """
+        if amplitude == 0.0:
+            return self.data_tmp
         pulse_data = custom_pulse_element(start + self.data_tmp.start_time, stop + self.data_tmp.start_time,
                                           amplitude, func_v2=custom_func_v2, kwargs=kwargs)
         self.data_tmp.add_custom_pulse_data(pulse_data)
@@ -178,6 +184,8 @@ class segment_pulse(segment_base):
 
             seg.P1.add_custom_pulse(0, 10, 142.0, tukey_pulse, alpha=0.5)
         """
+        if amplitude == 0.0:
+            return self.data_tmp
         pulse_data = custom_pulse_element(start + self.data_tmp.start_time, stop + self.data_tmp.start_time,
                                           amplitude, func=custom_func, kwargs=kwargs)
         self.data_tmp.add_custom_pulse_data(pulse_data)
