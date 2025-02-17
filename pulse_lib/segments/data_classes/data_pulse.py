@@ -80,11 +80,11 @@ class custom_pulse_element:
     def render(self, sample_rate):
         duration = self.stop - self.start
         if self.func:
-            data = self.func(duration, sample_rate, self.amplitude, **self.kwargs)
+            data = self.func(duration=duration, sample_rate=sample_rate, amplitude=self.amplitude, **self.kwargs)
         else:
             t_sample = 1e9/sample_rate
             t = np.arange(0, duration, t_sample)
-            data = self.func_v2(t, duration, self.amplitude, **self.kwargs)
+            data = self.func_v2(t=t, duration=duration, amplitude=self.amplitude, **self.kwargs)
         return data*self.scaling
 
     def render_hres(self, sample_rate, t: np.ndarray | None = None):
@@ -95,7 +95,7 @@ class custom_pulse_element:
             if t is None:
                 t_sample = 1e9/sample_rate
                 t = np.arange(0, duration, t_sample)
-            data = self.func_v2(t, duration, self.amplitude, **self.kwargs)
+            data = self.func_v2(t=t, duration=duration, amplitude=self.amplitude, **self.kwargs)
         return data*self.scaling
 
 
