@@ -247,6 +247,8 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
 
         if abs(v_start) < _lsb_step and abs(v_end) < _lsb_step:
             # nothing to render
+            if not self._rendering:
+                self._set_offset(t_start, 0.0)
             return
 
         is_ramp = abs(v_end - v_start) > _lsb_step
