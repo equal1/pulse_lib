@@ -251,8 +251,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
                 self._set_offset(t_start, 0.0)
             return
 
-        is_ramp = abs(v_end - v_start) > _lsb_step
-        is_long = (t_end - max(t_start, self._t_wave_end)) > (100 if is_ramp else 40)
+        is_long = (t_end - max(t_start, self._t_wave_end)) > 40
 
         if is_long:
             line_start = PulsarConfig.ceil(max(t_start, self._t_wave_end))
@@ -283,7 +282,9 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
 
     def add_sin(self, t_start, t_end, amplitude, frequency, phase):
         if self.verbose:
-            logger.info(f"sin {t_start}, {t_end}")
+            logger.info(f"sin {t_start}, {t_end}, {amplitude}, {frequency}")
+        if abs(amplitude) < _lsb_step:
+            return
         if self._hres:
             t_start = PulsarConfig.hres_round(t_start)
             t_end = PulsarConfig.hres_round(t_end)
@@ -311,6 +312,8 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         self._add_waveform_data(i_start, sine_data)
 
     def custom_pulse(self, t_start, t_end, amplitude, custom_pulse):
+        if abs(amplitude) < _lsb_step:
+            return
         if self._hres and custom_pulse.hres_rendering:
             t_start = PulsarConfig.hres_round(t_start)
             t_end = PulsarConfig.hres_round(t_end)
@@ -439,7 +442,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         self._t_constant = 0
 
     def _emit_if_gap(self, t_start):
-        if self._rendering and t_start - self._t_wave_end >= 40:
+        if self._rendering and t_start - self._t_wave_end >= 20:
             # there is a gap
             self._emit_waveform(PulsarConfig.ceil(self._t_wave_end))
 
@@ -449,7 +452,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         t_start = int(t_start)
         t_wave_end = self._t_wave_end
         t_gap = t_start - t_wave_end
-        if t_gap >= 40:
+        if t_gap >= 20:
             # there is a significant gap
             self._emit_waveform(PulsarConfig.ceil(t_wave_end))
             return
@@ -500,11 +503,15 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
             self._rendering = False
 
     def _play_waveform(self, t_start, waveform):
-        # TODO Optimize: check if offset has changed due to ramp or set_offset
-
         self._update_time_and_markers(t_start, 0)
         self._set_offset(t_start, self.v_compensation)
-        self._add_integral(np.sum(waveform))
+        total = np.sum(waveform)
+        self._add_integral(total)
+
+        if (abs(total) < _lsb_step
+                and np.max(waveform) - np.min(waveform) < _lsb_step):
+            # all zeros: nothing to play
+            return
 
         for index, data in enumerate(self._waveforms):
             if len(data) == len(waveform) and np.allclose(data, waveform):
