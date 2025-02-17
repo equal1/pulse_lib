@@ -46,9 +46,6 @@ class segment_IQ(segment_base):
             PM ('str/tuple/function') : function describing an phase modulation
             kwargs: keyword arguments passed into the AM and PM functions.
         '''
-        if amp == 0.0:
-            return self.data_tmp
-
         if AM is not None or PM is not None:
             envelope = envelope_generator(AM, PM, kwargs)
         else:

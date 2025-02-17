@@ -212,7 +212,8 @@ class pulse_data(parent_data):
         Args:
             MW_data_object (IQ_data_single) : description MW pulse (see pulse_lib.segments.data_classes.data_IQ)
         """
-        self.MW_pulse_data.append(MW_data_object)
+        if MW_data_object.amplitude != 0:
+            self.MW_pulse_data.append(MW_data_object)
         self.update_end_time(MW_data_object.stop)
 
     def add_chirp(self, chirp):
