@@ -1,14 +1,26 @@
-import time
-from uuid import UUID
-from datetime import datetime
-import numpy as np
 import logging
 import math
+import time
+
 from dataclasses import dataclass, field
+from datetime import datetime
 from numbers import Number
+from pathlib import Path
+from uuid import UUID
+
+import numpy as np
 from packaging.version import Version
 
+from q1pulse import (
+        Q1Instrument,
+        __version__ as q1pulse_version)
+from qblox_instruments import __version__ as qblox_version
+
 from pulse_lib.segments.conditional_segment import conditional_segment
+from pulse_lib.segments.data_classes.data_IQ import IQ_data_single, Chirp
+from pulse_lib.segments.data_classes.data_pulse import (
+        PhaseShift, custom_pulse_element, OffsetRamp)
+from pulse_lib.uploader.uploader_funcs import get_iq_nco_idle_frequency, merge_markers
 
 from .rendering import SineWaveform, get_modulation
 from .pulsar_sequencers import (
@@ -19,17 +31,9 @@ from .pulsar_sequencers import (
         PulsarConfig,
         MarkerEvent,
         LatchEvent)
+from .qblox_config import QbloxConfig
 from .qblox_conditional import get_conditional_channel
 
-from q1pulse import (
-        Q1Instrument,
-        __version__ as q1pulse_version)
-from qblox_instruments import __version__ as qblox_version
-
-from pulse_lib.segments.data_classes.data_IQ import IQ_data_single, Chirp
-from pulse_lib.segments.data_classes.data_pulse import (
-        PhaseShift, custom_pulse_element, OffsetRamp)
-from pulse_lib.uploader.uploader_funcs import get_iq_nco_idle_frequency, merge_markers
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +44,6 @@ def iround(value):
 
 class PulsarUploader:
     verbose = False
-    output_dir = None
 
     def __init__(self, awg_devices, awg_channels, marker_channels,
                  IQ_channels, qubit_channels, digitizers, digitizer_channels):
@@ -53,7 +56,7 @@ class PulsarUploader:
         self.jobs = []
         self.acq_description = None
 
-        q1 = Q1Instrument(PulsarUploader.output_dir, add_traceback=False)
+        q1 = Q1Instrument(QbloxConfig.output_dir, add_traceback=False)
         self.q1instrument = q1
 
         for awg in awg_devices.values():
@@ -122,10 +125,6 @@ class PulsarUploader:
             else:
                 if marker_ch.invert:
                     raise Exception('Marker inversion requires qblox_instrument 0.11+')
-
-    @staticmethod
-    def set_output_dir(path):
-        PulsarUploader.output_dir = path
 
     @property
     def supports_conditionals(self):
@@ -261,9 +260,10 @@ class PulsarUploader:
         triggers = {ch_name: getattr(job.program[ch_name], 'trigger', None) for ch_name in channels}
         self.acq_description = AcqDescription(seq_id, index, channels,
                                               job.acq_data_scaling,
+                                              job.n_acq_points,
                                               job.n_rep,
-                                              job.acquisition_conf.average_repetitions,
-                                              triggers)
+                                              average_repetitions=job.acquisition_conf.average_repetitions,
+                                              triggers=triggers)
 
         logger.info(f'Play {index}')
 
@@ -295,8 +295,24 @@ class PulsarUploader:
                     logger.debug(f'{ch_name} rotation {dig_channel.phase:6.3f} rad ' +
                                  f'acq: {job.program[ch_name].thresholded_acq_rotation:5.1f} degrees')
 
-        self.q1instrument.start_program(job.program)
-        self.q1instrument.wait_stopped(timeout_minutes=timeout_minutes)  # @@@ MOVE TO get_channel_data ??
+        # store program info.
+        if QbloxConfig.store_programs:
+            path = Path(QbloxConfig.output_dir)
+            if path is None:
+                path = Path.home() / ".q1"
+            path.mkdir(exist_ok=True)
+            now = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            path = path / f"q1progam_{now}_{tuple(index)}"
+
+            if not hasattr(self.q1instrument, "save_program"):
+                raise Exception("Update Q1Pulse to version 0.15.2+ to store program.")
+            print(f'Writing program to "{path}"')
+            self.q1instrument.save_program(job.program, path)
+
+        if not QbloxConfig.dry_run:
+            self.q1instrument.start_program(job.program)
+            # TODO: move to get_channel_data?
+            self.q1instrument.wait_stopped(timeout_minutes=timeout_minutes)
 
         if release_job:
             job.release()
@@ -305,6 +321,15 @@ class PulsarUploader:
         acq_desc = self.acq_description
         if acq_desc.seq_id != seq_id or (index is not None and acq_desc.index != index):
             raise Exception(f'Data for index {index} not available')
+
+        if QbloxConfig.dry_run:
+            result = {}
+            for name, n in acq_desc.n_points.items():
+                shape = (n,)
+                if not acq_desc.average_repetitions and acq_desc.n_rep:
+                    shape = (acq_desc.n_rep, n)
+                result[name] = np.random.rand(*shape)
+            return result
 
         result = {}
         for channel_name in acq_desc.channels:
@@ -404,6 +429,7 @@ class AcqDescription:
     index: list[int]
     channels: list[str]
     acq_data_scaling: dict[str, float | np.ndarray]
+    n_points: dict[str, int]
     n_rep: int
     average_repetitions: bool = False
     triggers: list[object] | None = None
@@ -436,6 +462,7 @@ class Job(object):
         self.acq_data_scaling = {}
         self.feedback_channels = set()
         self.acquisition_thresholds = {}
+        self.n_acq_points = {}
 
         self.released = False
 
@@ -922,6 +949,7 @@ class UploadAggregator:
         if acq_conf.average_repetitions:
             seq.reset_bin_counter(t=0)
 
+        n_acq_points = 0
         acq_threshold = None
         acq_threshold_trigger_invert = False
         use_feedback = channel_name in self.feedback_triggers
@@ -949,6 +977,7 @@ class UploadAggregator:
                     seq.repeated_acquire(t, t_measure, acquisition.n_repeat,
                                          PulsarConfig.floor(acquisition.interval),
                                          acq_conf.f_sweep)
+                    n_acq_points += acquisition.n_repeat
                     if acq_conf.sample_rate is not None:
                         logger.info('Acquisition sample_rate is ignored when n_repeat is set')
                 elif acq_conf.sample_rate is not None:
@@ -957,8 +986,10 @@ class UploadAggregator:
                         raise Exception(f'{channel_name} acquisition t_measure ({t_measure}) < 1/sample_rate '
                                         f'({trigger_period})')
                     seq.repeated_acquire(t, trigger_period, n_cycles, trigger_period, acq_conf.f_sweep)
+                    n_acq_points += n_cycles
                 else:
                     seq.acquire(t, t_measure)
+                    n_acq_points += 1
                 if acquisition.threshold is not None and use_feedback:
                     # TODO calculate scaled threshold here and not in play?
                     # TODO check if this threshold is needed for feedback?
@@ -981,6 +1012,7 @@ class UploadAggregator:
             # invert set on Trigger object of channel.
             self.feedback_triggers[channel_name].invert = acq_threshold_trigger_invert
         job.acq_data_scaling[channel_name] = seq.get_data_scaling()
+        job.n_acq_points[channel_name] = n_acq_points
 
     def add_marker_seq(self, job, channel_name):
         seq = SequenceBuilderBase(channel_name, self.program[channel_name])
