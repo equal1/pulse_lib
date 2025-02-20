@@ -1,8 +1,7 @@
 instruments:
 
   sig_gen1:
-    type: qcodes.instrument_drivers.mock_instruments.DummyInstrument
-    # type: qcodes.tests.instrument_mocks.DummyInstrument
+    type: pulse_lib.tests.dummy_instrument.DummyInstrument
     enable_forced_reconnect: true
     init:
       gates: ['frequency','power']
@@ -11,8 +10,7 @@ instruments:
         limits: [0,20e9]
 
   sig_gen2:
-    type: qcodes.instrument_drivers.mock_instruments.DummyInstrument
-    # type: qcodes.tests.instrument_mocks.DummyInstrument
+    type: pulse_lib.tests.dummy_instrument.DummyInstrument
     enable_forced_reconnect: true
     init:
       gates: ['frequency','power']
