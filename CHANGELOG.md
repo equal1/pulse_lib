@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.44] - 2025-02-21
+
+- Added store_programs and dry_run options to Qblox backend.
+
 ## \[1.7.43] - 2025-02-17
 
 - Removed optimization from Qblox backed that caused errors since 1.7.33.
