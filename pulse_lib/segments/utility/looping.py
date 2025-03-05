@@ -141,48 +141,48 @@ class loop_obj():
             partial.data = self.data[key]
             return partial
 
-    def __add__(self, other):
+    def __add__(self, rhs):
         cpy = copy.copy(self)
-        if isinstance(other, loop_obj):
+        if isinstance(rhs, loop_obj):
             # combine axis returns the reshaped data
-            cpy_data, other_data = loop_obj.__combine_axis(cpy, other)
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
             cpy.data = cpy_data + other_data
         else:
-            cpy.data += other
+            cpy.data += rhs
         return cpy
 
-    def __radd__(self, other):
+    def __radd__(self, lhs):
         # only called if other is not loop_obj
-        return self.__add__(other)
+        return self.__add__(lhs)
 
-    def __mul__(self, other):
+    def __mul__(self, rhs):
         cpy = copy.copy(self)
-        if isinstance(other, loop_obj):
-            cpy_data, other_data = loop_obj.__combine_axis(cpy, other)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
             cpy.data = cpy_data * other_data
         else:
-            cpy.data *= other
+            cpy.data *= rhs
         return cpy
 
-    def __rmul__(self, other):
+    def __rmul__(self, lhs):
         # only called if other is not loop_obj
         cpy = copy.copy(self)
-        cpy.data *= other
+        cpy.data *= lhs
         return cpy
 
-    def __sub__(self, other):
+    def __sub__(self, rhs):
         cpy = copy.copy(self)
-        if isinstance(other, loop_obj):
-            cpy_data, other_data = loop_obj.__combine_axis(cpy, other)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
             cpy.data = cpy_data - other_data
         else:
-            cpy.data -= other
+            cpy.data -= rhs
         return cpy
 
-    def __rsub__(self, other):
+    def __rsub__(self, lhs):
         # only called if other is not loop_obj
         cpy = copy.copy(self)
-        cpy.data = other - cpy.data
+        cpy.data = lhs - cpy.data
         return cpy
 
     def __neg__(self):
@@ -190,13 +190,13 @@ class loop_obj():
         cpy.data = -cpy.data
         return cpy
 
-    def __truediv__(self, other):
+    def __truediv__(self, rhs):
         cpy = copy.copy(self)
-        if isinstance(other, loop_obj):
-            cpy_data, other_data = loop_obj.__combine_axis(cpy, other)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
             cpy.data = cpy_data / other_data
         else:
-            cpy.data /= other
+            cpy.data /= rhs
         return cpy
 
     def __rtruediv__(self, lhs):
@@ -222,6 +222,66 @@ class loop_obj():
     def __ceil__(self):
         cpy = copy.copy(self)
         cpy.data = np.ceil(self.data)
+        return cpy
+
+    def __lt__(self, rhs):
+        cpy = copy.copy(self)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
+            data = cpy_data < other_data
+        else:
+            data = cpy.data < rhs
+        cpy.data = data.astype(float)
+        return cpy
+
+    def __le__(self, rhs):
+        cpy = copy.copy(self)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
+            data = cpy_data <= other_data
+        else:
+            data = cpy.data <= rhs
+        cpy.data = data.astype(float)
+        return cpy
+
+    def __gt__(self, rhs):
+        cpy = copy.copy(self)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
+            data = cpy_data > other_data
+        else:
+            data = cpy.data > rhs
+        cpy.data = data.astype(float)
+        return cpy
+
+    def __ge__(self, rhs):
+        cpy = copy.copy(self)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
+            data = cpy_data >= other_data
+        else:
+            data = cpy.data >= rhs
+        cpy.data = data.astype(float)
+        return cpy
+
+    def __eq__(self, rhs):
+        cpy = copy.copy(self)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
+            data = cpy_data == other_data
+        else:
+            data = cpy.data == rhs
+        cpy.data = data.astype(float)
+        return cpy
+
+    def __ne__(self, rhs):
+        cpy = copy.copy(self)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
+            data = cpy_data != other_data
+        else:
+            data = cpy.data != rhs
+        cpy.data = data.astype(float)
         return cpy
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
@@ -424,6 +484,7 @@ if __name__ == '__main__':
     print(lp.labels)
     print(lp.units)
     print(lp.setvals)
+    lp3 = lp
 
     lp = linspace(0, 10, 5)
 
@@ -445,3 +506,5 @@ if __name__ == '__main__':
 
     lp2 = 100 * lp
     print(lp2.data)
+
+    print(np.array(lp3))
