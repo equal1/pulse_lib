@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 from qcodes import MultiParameter
@@ -162,7 +163,7 @@ def fast_scan1D_param(pulse_lib, gate, swing, n_pt, t_step,
         enabled_markers=enabled_markers,
         pulse_gates={
             name: dict(label=name, value=value, unit="mV")
-            for name, value in pulse_gates
+            for name, value in pulse_gates.items()
         },
         line_margin=line_margin,
     )
@@ -351,7 +352,7 @@ def fast_scan2D_param(pulse_lib, gate1, swing1, n_pt1, gate2, swing2, n_pt2, t_s
         enabled_markers=enabled_markers,
         pulse_gates={
             name: dict(label=name, value=value, unit="mV")
-            for name, value in pulse_gates
+            for name, value in pulse_gates.items()
         },
         line_margin=line_margin,
     )
@@ -489,7 +490,7 @@ class _scan_parameter(MultiParameter):
     def snapshot_base(self,
                       update: bool | None = True,
                       params_to_skip_update: Sequence[str] | None = None
-                      ) -> dict[any, any]:
+                      ) -> dict[Any, Any]:
         snapshot = super().snapshot_base(update, params_to_skip_update)
         snapshot.update(self._snapshot_extra)
         return snapshot

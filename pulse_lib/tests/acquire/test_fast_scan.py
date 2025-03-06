@@ -10,14 +10,14 @@ def test1():
 
     m_param1D = fast_scan1D_param(
         pulse,
-        'P1', 100, 51, 2000,
+        'P1', 100, 41, 1000,
         iq_complex=True)
 
     m_param2D = fast_scan2D_param(
         pulse,
-        'P1', 100, 51,
+        'P1', 100, 21,
         'P2', 20, 21,
-        2000,
+        1000,
         iq_mode='Complex')
 
 #    data1 = m_param1D()
@@ -96,8 +96,33 @@ def test4():
     return context.run('fast_scan_IQ', m_param2D)
 
 
+def test5():
+    pulse = context.init_pulselib(n_gates=4, n_sensors=2, rf_sources=True)
+
+    m_param1D = fast_scan1D_param(
+        pulse,
+        'P1', 100, 41, 1000,
+        iq_mode="I",
+        pulse_gates={"P2": 10.0})
+
+    m_param2D = fast_scan2D_param(
+        pulse,
+        'P1', 100, 21,
+        'P2', 20, 21,
+        1000,
+        iq_mode="I",
+        pulse_gates={
+            "P1": 20.0,
+            "P2": 10.0,
+            "P3": -10.0,
+            })
+
+    return context.run('fast_scan', m_param1D, m_param2D)
+
+
 if __name__ == '__main__':
     ds1 = test1()
     ds2 = test2()
     ds3 = test3()
     ds4 = test4()
+    ds5 = test5()
