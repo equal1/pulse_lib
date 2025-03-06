@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Any
 
 from scipy import signal
 import numpy as np
@@ -13,7 +14,7 @@ class envelope_generator():
     def __init__(self,
                  AM_envelope_function: str | tuple[str, ...] | EnvelopeFunction | None = None,
                  PM_envelope_function: str | tuple[str, ...] | EnvelopeFunction | None = None,
-                 kwargs: dict[str, any] | None = None):
+                 kwargs: dict[str, Any] | None = None):
         """
         define envelope funnctions.
         Args

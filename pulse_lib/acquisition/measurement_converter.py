@@ -2,6 +2,7 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from numbers import Number
+from typing import Any
 
 import numpy as np
 from qcodes import MultiParameter
@@ -93,7 +94,7 @@ class MeasurementParameter(MultiParameter):
         self._derived_params = {}
         self._snapshot_extra = {}
 
-    def update_snapshot(self, snapshot_extra: dict[str, any]):
+    def update_snapshot(self, snapshot_extra: dict[str, Any]):
         self._snapshot_extra.update(snapshot_extra)
 
     def add_derived_param(self, name, func, label=None, unit='mV',
@@ -245,7 +246,7 @@ class MeasurementParameter(MultiParameter):
     def snapshot_base(self,
                       update: bool | None = True,
                       params_to_skip_update: Sequence[str] | None = None
-                      ) -> dict[any, any]:
+                      ) -> dict[Any, Any]:
         snapshot = super().snapshot_base(update, params_to_skip_update)
         snapshot.update(self._snapshot_extra)
         return snapshot

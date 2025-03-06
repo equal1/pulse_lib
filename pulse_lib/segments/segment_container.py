@@ -1,7 +1,4 @@
-"""
-File contains an object that mananges segments. E.g. you are dealing with mutiple channels.
-This object also allows you to do operations on all segments at the same time.
-"""
+from typing import Any
 
 from pulse_lib.segments.segment_pulse import segment_pulse
 from pulse_lib.segments.segment_IQ import segment_IQ
@@ -20,9 +17,10 @@ import numpy as np
 import copy
 from dataclasses import dataclass
 
+
 class segment_container():
     def __init__(self, channel_names, markers=[], virtual_gate_matrices=None, IQ_channels_objs=[],
-                 digitizer_channels = [],
+                 digitizer_channels=[],
                  name=None, sample_rate=None, hres=False):
         """
         initialize a container for segments.
@@ -103,9 +101,9 @@ class segment_container():
 
             new.channels = {}
 
-            for name,channel in self.channels.items():
+            for name, channel in self.channels.items():
                 new_chan = channel[index]
-                setattr(new, name,new_chan)
+                setattr(new, name, new_chan)
                 new.channels[name] = new_chan
 
             new._setpoints = self._setpoints # @@@ -1 setpoint...
@@ -196,7 +194,7 @@ class segment_container():
         for i, channel in enumerate(self.channels.values()):
             time_data[i] = channel.total_time
 
-        times = np.amax(time_data, axis = 0)
+        times = np.amax(time_data, axis=0)
 
         if self.render_mode:
             self._total_times = times
@@ -222,7 +220,7 @@ class segment_container():
         for i, channel in enumerate(self.channels.values()):
             time_data[i] = channel.start_time
 
-        times = np.amax(time_data, axis = 0)
+        times = np.amax(time_data, axis=0)
 
         return times
 
@@ -250,10 +248,10 @@ class segment_container():
         if shape != [1]:
             n_channels = len(self.channels)
             time_data = np.empty([n_channels] + shape)
-            for i,channel in enumerate(self.channels.values()):
+            for i, channel in enumerate(self.channels.values()):
                 time_data[i] = channel.total_time
 
-            times = np.amax(time_data, axis = 0)
+            times = np.amax(time_data, axis=0)
             times, axis = reduce_arr(times)
             if len(axis) == 0:
                 loop_obj = times
@@ -270,7 +268,7 @@ class segment_container():
             for channel in self.channels.values():
                 channel.reset_time(time)
 
-    def get_waveform(self, channel, index = [0], sample_rate=1e9, ref_channel_states=None):
+    def get_waveform(self, channel, index=[0], sample_rate=1e9, ref_channel_states=None):
         '''
         function to get the raw data of a waveform,
         inputs:
@@ -427,6 +425,7 @@ class segment_container():
             metadata.update(channel.get_metadata())
         return metadata
 
+
 @dataclass
 class virtual_pulse_channel_info:
     """
@@ -434,7 +433,7 @@ class virtual_pulse_channel_info:
     """
     name: str
     multiplication_factor: float
-    seg_container: any
+    seg_container: Any
 
     @property
     def segment(self):
@@ -458,13 +457,12 @@ def add_reference_channels(segment_container_obj, virtual_gate_matrices, IQ_chan
 
     if virtual_gate_matrices:
         projection = virtual_gate_matrices.get_virtual_gate_projection(segment_container_obj.physical_channels)
-        for virtual_gate_name,virt2real in projection.items():
+        for virtual_gate_name, virt2real in projection.items():
             for real_gate_name, multiplier in virt2real.items():
                 real_channel = segment_container_obj[real_gate_name]
                 virtual_channel_reference_info = virtual_pulse_channel_info(virtual_gate_name,
-                    multiplier, segment_container_obj)
+                                                                            multiplier, segment_container_obj)
                 real_channel.add_reference_channel(virtual_channel_reference_info)
-
 
     # define virtual IQ channels
     for IQ_channels_obj in IQ_channels_objs:

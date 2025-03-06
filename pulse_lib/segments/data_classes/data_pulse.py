@@ -6,7 +6,7 @@ import math
 import copy
 from dataclasses import dataclass
 from numbers import Number
-from typing import Callable
+from typing import Any, Callable
 
 import numpy as np
 
@@ -71,7 +71,7 @@ class custom_pulse_element:
     amplitude: float
     func: Callable[[float, float, float, ...], np.ndarray] = None
     func_v2: Callable[[np.ndarray, float, float, ...], np.ndarray] = None
-    kwargs: dict[str, any] = None
+    kwargs: dict[str, Any] = None
     scaling: int = 1.0
 
     def __post_init__(self):
@@ -99,20 +99,20 @@ class custom_pulse_element:
         return data*self.scaling
 
 
-def shift_start_stop(data: list[any], delta) -> None:
+def shift_start_stop(data: list[Any], delta) -> None:
     for element in data:
         element.start += delta
         element.stop += delta
 
 
-def get_max_time(data: list[any]) -> float:
+def get_max_time(data: list[Any]) -> float:
     stop = 0
     for element in data:
         stop = max(stop, element.stop)
     return stop
 
 
-def shift_time(data: list[any], delta) -> None:
+def shift_time(data: list[Any], delta) -> None:
     for element in data:
         element.time += delta
 

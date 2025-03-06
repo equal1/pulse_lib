@@ -5,6 +5,7 @@ from copy import copy
 from typing import Callable
 from dataclasses import dataclass
 from contextlib import contextmanager
+from typing import Any
 
 import numpy as np
 
@@ -811,9 +812,9 @@ class IQSequenceBuilder(SequenceBuilderBase):
 @dataclass
 class _SeqCommand:
     time: int
-    func: Callable[..., any]
-    args: list[any]
-    kwargs: dict[str, any]
+    func: Callable[..., Any]
+    args: list[Any]
+    kwargs: dict[str, Any]
 
 
 class AcquisitionSequenceBuilder(SequenceBuilderBase):

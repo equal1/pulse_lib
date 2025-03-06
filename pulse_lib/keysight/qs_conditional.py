@@ -2,6 +2,7 @@ import logging
 import time
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from typing import Any
 
 import numpy as np
 
@@ -163,7 +164,7 @@ class QsConditionalMW():
     # set MW pulse
     @dataclass
     class BranchPulse:
-        mw_pulse: any = None
+        mw_pulse: Any = None
         prephase: float = 0.0
         postphase: float = 0.0
 
