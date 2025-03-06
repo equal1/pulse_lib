@@ -10,6 +10,37 @@ from pulse_lib.qblox.pulsar_sequencers import PulsarConfig
 PulsarConfig.NS_SUB_DIVISION = 10
 
 
+def conveyor_cosine_modulation_position(
+        t: np.ndarray,
+        duration: float,
+        amplitude: float,
+        start_pos: float,
+        stop_pos: float,
+        mod_period: float,
+        ) -> np.ndarray:
+    """Cosine modulated position of the charge: charge_pos = center - d*cos(2*pi*t/period) + phase),
+    where d = pi*(stop-start) and center = pi*(start+stop).
+
+    Args:
+        t: timestamps of samples relative to pulse start [ns]
+        duration: duration of pulse [ns]
+        amplitude:  amplitude of pulse [ns]
+        start_pos: start position in conveyor expressed in conveyor cycles.
+        stop_pos: stopt position in conveyor expressed in conveyor cycles.
+        mod_period:
+            duration of a full period of the modulation. i.e. time from start_pos to stop_pas and return to start_pos.
+        phase: phase of the sin at the start of the conveyor (pos = 0)
+
+    y = amplitude * sin(center - d*cos(2*pi*t/period) + phase)
+
+    Note:
+        Max frequency (of sin) is max of -d*sin(2*pi*t/period)*2*pi/period = d*2*pi/period
+    """
+    center = (start_pos + stop_pos)/2
+    d = (stop_pos - start_pos)/2
+    return amplitude * (center - d*np.cos(2*np.pi*t/mod_period))
+
+
 def conveyor_cosine_modulation(
         t: np.ndarray,
         duration: float,
@@ -37,40 +68,8 @@ def conveyor_cosine_modulation(
     Note:
         Max frequency (of sin) is max of -d*sin(2*pi*t/period)*2*pi/period = d*2*pi/period
     """
-    center = np.pi*(start_pos + stop_pos)
-    d = np.pi*(stop_pos - start_pos)
-    return amplitude * np.sin(center - d*np.cos(2*np.pi*t/mod_period) + phase)
-
-
-def conveyor_cosine_modulation_position(
-        t: np.ndarray,
-        duration: float,
-        amplitude: float,
-        start_pos: float,
-        stop_pos: float,
-        mod_period: float,
-        ) -> np.ndarray:
-    """Creates a cosine modulated sine pulse: y = sin(center - d*cos(2*pi*t/period) + phase),
-    where d = pi*(stop-start) and center = pi*(start+stop).
-
-    Args:
-        t: timestamps of samples relative to pulse start [ns]
-        duration: duration of pulse [ns]
-        amplitude:  amplitude of pulse [ns]
-        start_pos: start position in conveyor expressed in conveyor cycles.
-        stop_pos: stopt position in conveyor expressed in conveyor cycles.
-        mod_period:
-            duration of a full period of the modulation. i.e. time from start_pos to stop_pas and return to start_pos.
-        phase: phase of the sin at the start of the conveyor (pos = 0)
-
-    y = amplitude * sin(center - d*cos(2*pi*t/period) + phase)
-
-    Note:
-        Max frequency (of sin) is max of -d*sin(2*pi*t/period)*2*pi/period = d*2*pi/period
-    """
-    center = np.pi*(start_pos + stop_pos)
-    d = np.pi*(stop_pos - start_pos)
-    return amplitude * (center - d*np.cos(2*np.pi*t/mod_period))/(2*np.pi)
+    charge_pos = conveyor_cosine_modulation_position(t, duration, 1.0, start_pos, stop_pos, mod_period)
+    return amplitude * np.sin(2*np.pi*charge_pos + phase)
 
 
 def test1(hres=False):
@@ -221,7 +220,6 @@ def test3(hres=False, t_wait=0.0):
     return context.run('cos_modulation3', sequence, m_param)
 
 
-# @@@ Maxim: shuttling => X90 gate.
 # Qblox: break on 4 ns alignment. Z90 = ~2 ns, mZ90= ~6 ns.
 # Set build specific break length.
 

@@ -29,8 +29,8 @@ def test1(t):
         s.reset_time()
 
     s.reset_time()
-    s.SD1.acquire(0, 20)
-    s.wait(20)
+    s.SD1.acquire(0, 40)
+    s.wait(40)
 
     sequence = pulse.mk_sequence(segments)
     sequence.n_rep = 2
@@ -70,8 +70,8 @@ def test2(t):
         s.reset_time()
 
     s.reset_time()
-    s.SD1.acquire(0, 20)
-    s.wait(20)
+    s.SD1.acquire(0, 40)
+    s.wait(40)
 
     sequence = pulse.mk_sequence(segments)
     sequence.n_rep = 2

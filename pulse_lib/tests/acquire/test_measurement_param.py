@@ -2,7 +2,8 @@
 from pulse_lib.tests.configurations.test_configuration import context
 
 
-#%%
+# %%
+
 def test1():
     pulse = context.init_pulselib(n_gates=2, n_sensors=2)
 
@@ -62,7 +63,7 @@ def test4():
 
     s = pulse.mk_segment()
 
-    s.P1.add_block(0, 20, 100) #lp.linspace(-100, 100, 5, axis=0, name='amplitude', unit='mV'))
+    s.P1.add_block(0, 20, 100)  # lp.linspace(-100, 100, 5, axis=0, name='amplitude', unit='mV'))
     s.P2.add_block(0, 20, -100)
     s.SD1.acquire(0, 1000, threshold=1.0, wait=True)
     s.SD2.acquire(0, 1000, threshold=2.0, wait=True)
@@ -74,13 +75,13 @@ def test4():
     return context.run('m_param2', sequence, m_param)
 
 
-#%%
+# %%
 
 if __name__ == '__main__':
     ds1 = test1()
     ds2 = test2()
     ds3 = []
-    for iq_mode in [#'Complex',
+    for iq_mode in [  # 'Complex',
                     'I', 'Q', 'amplitude', 'phase', 'I+Q', 'amplitude+phase']:
         ds3.append(test3(iq_mode))
     ds4 = test4()
