@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.45] - 2025-03-06
+
+- Fixed fast_scan1D_param and fast_scan2D_param with pulse_gates
+- Added comparison methods (__gt__, etc.) to loop_obj
+
 ## \[1.7.44] - 2025-02-21
 
 - Added store_programs and dry_run options to Qblox backend.
