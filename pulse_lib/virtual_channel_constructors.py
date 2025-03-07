@@ -1,4 +1,12 @@
+import logging
 from .configuration.iq_channels import IQ_channel
+
+
+logger = logging.getLogger(__name__)
+
+
+# @@@ TODO DELETE classes
+
 
 class virtual_gates_constructor(object):
     """
@@ -11,6 +19,7 @@ class virtual_gates_constructor(object):
             pulse_lib_obj (pulse_lib) : add a pulse lib object to whom properties need to be added.
             name (str): name of the matrix
         """
+        logger.error('virtual_gates_constructor is deprecated. It will be removed in the next release. Use pulse_lib.add_virtual_matrix')
         self.pulse_lib_obj = pulse_lib_obj
         self.name = name
         self.real_gate_names = []
@@ -80,7 +89,7 @@ class IQ_channel_constructor(object):
         Args:
             pulse_lib_obj (pulse_lib) : add a pulse lib object to whom properties need to be added.
         """
-        # TODO @@@ next release: logger.warning('IQ_channel_constructor is deprecated. Use pulse_lib.define_iq_channel')
+        logger.error('IQ_channel_constructor is deprecated. It will be removed in the next release. Use pulse_lib.define_iq_channel')
         self.pulse_lib_obj = pulse_lib_obj
         if name is None:
             name = f'_IQ-{len(pulse_lib_obj.IQ_channels)}'
