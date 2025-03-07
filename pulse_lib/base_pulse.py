@@ -614,6 +614,7 @@ class pulselib:
             new_hardware_class = isinstance(hardware, hw_cls)
         except Exception:
             new_hardware_class = False
+            print("WARNING: support for old core-tools harware class will be removed in next release.")
 
         if new_hardware_class:
             for virtual_gate_set in hardware.virtual_gates:
