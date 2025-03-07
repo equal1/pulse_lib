@@ -1,12 +1,11 @@
 from pulse_lib.base_pulse import pulselib
-from pulse_lib.virtual_channel_constructors import virtual_gates_constructor, IQ_channel_constructor
-import numpy as np
 
 _backend = 'Qblox'
-#_backend = 'Keysight'
-#_backend = 'Keysight_QS'
+# _backend = 'Keysight'
+# _backend = 'Keysight_QS'
 
 _ch_offset = 0
+
 
 def init_hardware():
     global _ch_offset
@@ -18,7 +17,7 @@ def init_hardware():
     if _backend == 'Keysight':
         _ch_offset = 1
         from .init_keysight import awg1, awg2, dig1
-        return [awg1,awg2], [dig1]
+        return [awg1, awg2], [dig1]
     if _backend == 'Keysight_QS':
         _ch_offset = 1
         from .init_keysight_qs import awg1, dig1
@@ -82,20 +81,18 @@ def init_pulselib(awgs, digitizers, virtual_gates=False, bias_T_rc_time=None):
         pulse.add_channel_bias_T_compensation('P2', bias_T_rc_time)
 
     if virtual_gates:
-        # set a virtual gate matrix
-        virtual_gate_set_1 = virtual_gates_constructor(pulse)
-        virtual_gate_set_1.add_real_gates('P1','P2', 'P3', 'P4')
-        virtual_gate_set_1.add_virtual_gates('vP1','vP2', 'vP3', 'vP4')
-        inv_matrix = np.array(
-                [
-                [1.0, -0.1, -0.01, 0.0],
-                [0.1, 1.0, -0.1, -0.01],
-                [0.01, -0.1, 1.0, -0.1],
-                [0.0, -0.01, -0.1, 1.0],
-                ])
-        virtual_gate_set_1.add_virtual_gate_matrix(np.linalg.inv(inv_matrix))
+        pulse.add_virtual_matrix(
+                name='virtual-gates',
+                real_gate_names=['P1', 'P2', 'P3', 'P4'],
+                virtual_gate_names=['vP1', 'vP2', 'vP3', 'vP4'],
+                matrix=[
+                    [1.0, -0.1, -0.01, 0.0],
+                    [0.1, 1.0, -0.1, -0.01],
+                    [0.01, -0.1, 1.0, -0.1],
+                    [0.0, -0.01, -0.1, 1.0],
+                    ]
+                )
 
     pulse.finish_init()
 
     return pulse
-

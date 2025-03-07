@@ -28,7 +28,7 @@ class segment_container():
             channel_names (list<str>) : list with names of physical output channels on the AWG
             markers (list<str>) : declaration which of these channels are markers
             virtual_gate_matrices (VirtualGateMatrices) : object with all virtual gates matrices
-            IQ_channels_objs (list<IQ_channel_constructor>) : list of objects that define virtual IQ channels.
+            IQ_channels_objs (list<IQ_channel>) : list of objects that define virtual IQ channels.
             Name (str): Optional name of segment container
             sample_rate (float): Optional sample rate of segment container. This sample rate overrules the default set on the sequence.
         """
@@ -447,7 +447,7 @@ def add_reference_channels(segment_container_obj, virtual_gate_matrices, IQ_chan
     Args:
         segment_container_obj (segment_container) :
         virtual_gate_matrices (VirtualGateMatrices) : collection of all virtual gate matrices
-        IQ_channels_objs (list<IQ_channel_constructor>) : list of objects that define virtual IQ channels.
+        IQ_channels_objs (list<IQ_channel>) : list of objects that define virtual IQ channels.
     '''
     for channel in segment_container_obj.channels:
         seg_ch = segment_container_obj[channel]
