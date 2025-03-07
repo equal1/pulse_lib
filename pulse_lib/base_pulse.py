@@ -400,11 +400,6 @@ class pulselib:
         '''
         self.IQ_channels[iq_channel_name].LO_parameter = lo
 
-    def define_IQ_channel(self, name):
-        print("WARNING: define_IQ_channel is deprecated use define_iq_channel")
-        self.define_iq_channel(name)
-        return self.IQ_channels[name]
-
     def define_qubit_channel(self, qubit_channel_name, IQ_channel_name,
                              resonance_frequency=None,
                              correction_phase=0.0, correction_gain=(1.0, 1.0)
