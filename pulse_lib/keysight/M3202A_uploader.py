@@ -849,7 +849,7 @@ class UploadAggregator:
                 # The current section should end before the next segment starts:
                 # - subtract any extension into the next segment
                 # - align boundary with truncation
-                n_pre = int(np.ceil((section.t_end - (seg.t_end - max_pre_start_ns)) * section.sample_rate))
+                n_pre = int(np.ceil((section.t_end - (seg.t_end - max_pre_start_ns)) * section.sample_rate - 1e-6))
                 section.npt -= n_pre
                 section.align(extend=False)
 
@@ -1108,8 +1108,8 @@ class UploadAggregator:
         offset = int(self.max_pre_start_ns)
         for i in range(0, len(m), 2):
             # align to marker resolution
-            t_on = math.floor((m[i][0] + offset)/10)*10
-            t_off = math.ceil((m[i+1][0] + offset)/10)*10
+            t_on = math.floor((m[i][0] + offset)/10 + 1e-6)*10
+            t_off = math.ceil((m[i+1][0] + offset)/10 - 1e-6)*10
             if UploadAggregator.verbose:
                 logger.debug(f'Marker: {t_on} - {t_off}')
             table.append((t_on, t_off))
