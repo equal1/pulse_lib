@@ -304,6 +304,13 @@ class loop_obj():
         elif inputs[0] is self:
             return getattr(ufunc, method)(self.data, *inputs[1:], **kwargs)
         elif len(inputs) > 1 and inputs[1] is self and method == '__call__':
+            cpy = copy.copy(self)
+            if 'out' in kwargs:
+                raise Exception('out not yet supported.')
+            args = list(inputs[2:])
+            cpy.data = ufunc(inputs[0], self.data, *args, **kwargs)
+            return cpy
+        else:
             return ufunc(inputs[0], self.data, *inputs[2:], **kwargs)
         return NotImplemented
 
