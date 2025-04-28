@@ -384,7 +384,7 @@ class RFSequenceBuilder:
         self._amplitude = rf_source.amplitude / rf_source.attenuation
         self._offset = offset
         self._start_offset = offset + rf_source.delay - rf_source.startup_time_ns
-        self._stop_offset = offset + rf_source.delay - rf_source.prolongation_ns
+        self._stop_offset = offset + rf_source.delay + rf_source.prolongation_ns
         self._amplitude = rf_source.amplitude / rf_source.attenuation
         self._frequency = 0
 
