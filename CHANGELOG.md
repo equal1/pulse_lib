@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.47] - 2025-04-28
+
+- Fixed RF source for Keysight_QS
+
 ## \[1.7.46] - 2025-04-03
 
 - Fixed binary operations on np.float64 and loop_obj.
