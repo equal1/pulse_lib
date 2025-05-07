@@ -605,12 +605,16 @@ class QsUploader:
 
                 # @@@ IQSequence.upload() OR Sequence.upload()
                 for number, wvf in enumerate(sequence.waveforms):
+                    kwargs = {}
+                    if wvf.prescaler != 0:
+                        kwargs["prescaler"] = wvf.prescaler
                     seq.upload_waveform(number, wvf.offset, wvf.duration,
                                         wvf.amplitude, wvf.am_envelope,
                                         wvf.frequency, wvf.pm_envelope,
                                         wvf.prephase, wvf.postphase,
                                         wvf.restore_frequency,
-                                        append_zero=wvf.restore_frequency)
+                                        append_zero=wvf.restore_frequency,
+                                        **kwargs)
 
                 t2 = time.perf_counter()
                 for i, entry in enumerate(sequence.sequence):

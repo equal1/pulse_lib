@@ -19,6 +19,13 @@ class Waveform:
     duration: int = 0
     offset: int = 0
     restore_frequency: bool = True
+    prescaler: int = 0
+    """
+    prescaler to use:
+        0, 2: no prescaler
+        1: scale 5x -> 200 MSa/s
+        3: use custom prescaler
+    """
 
     @property
     def extra_samples(self):
@@ -37,15 +44,16 @@ class Waveform:
         return self.offset + self.duration + self.extra_samples
 
     def __eq__(self, other):
-        return (self.amplitude == other.amplitude
-                and np.all(self.am_envelope == other.am_envelope)
+        return (self.duration == other.duration
+                and self.amplitude == other.amplitude
                 and self.frequency == other.frequency
-                and np.all(self.pm_envelope == other.pm_envelope)
                 and self.prephase == other.prephase
                 and self.postphase == other.postphase
-                and self.duration == other.duration
                 and self.offset == other.offset
                 and self.restore_frequency == other.restore_frequency
+                and np.array_equal(self.am_envelope, other.am_envelope)
+                and np.array_equal(self.pm_envelope, other.pm_envelope)
+                and self.prescaler == other.prescaler
                 )
 
 
