@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.48] - 2025-05-07
+
+- Fixed Keysight_QS waveform memory allocation
+
 ## \[1.7.47] - 2025-04-28
 
 - Fixed RF source for Keysight_QS
