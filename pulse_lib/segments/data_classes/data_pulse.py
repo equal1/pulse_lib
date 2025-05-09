@@ -482,13 +482,14 @@ class pulse_data(parent_data):
                     ramps[i] = delta.ramp
                     steps[i] = delta.step - dt*delta.ramp
                     samples[i] = -dt*delta.step + dt*delta.ramp
+
+                    # 2nd order correction have been removed... As far as known it is currenlty not actively used...
                     # asymmetric 2nd order correction used in v1.6
                     # samples[i] += - dt*(t_sample-dt)*delta.ramp/2
+
                     # symmetric 2nd order correction used in v1.7+
-                    samples[i] += - dt*(t_sample-dt)*delta.ramp/2/2
-                    samples2[i] = - dt*(t_sample-dt)*delta.ramp/2/2
-                    # samples[i] += - dt*(t_sample-dt)*delta.ramp*(dt)*0.5
-                    # samples2[i] = - dt*(t_sample-dt)*delta.ramp*(1-dt)*0.5
+                    # samples[i] += - dt*(t_sample-dt)*delta.ramp/2/2
+                    # samples2[i] = - dt*(t_sample-dt)*delta.ramp/2/2
             else:
                 for i, delta in enumerate(self.pulse_deltas):
                     times[i] = delta.time
@@ -818,12 +819,11 @@ class pulse_data(parent_data):
             if abs(freq) > sample_rate*1e9/2:
                 raise Exception(f'Frequency {freq*1e-6:5.1f} MHz is above Nyquist frequency ({sample_rate*1e3/2} MHz)')
 
-            n_pt = int((stop_pulse - start_pulse) * sample_rate)
+            phase_envelope = chirp.phase + chirp.get_phase_modulation((stop_pulse - start_pulse), sample_rate)
+            n_pt = len(phase_envelope)
             start_pt = iround(start_pulse * sample_rate)
             stop_pt = start_pt + n_pt
-
             t = start_pt + np.arange(n_pt)
-            phase_envelope = chirp.phase + chirp.get_phase_modulation((stop_pulse - start_pulse), sample_rate)
             wvf[start_pt:stop_pt] += amp*np.sin(2*np.pi*freq/sample_rate*1e-9*t + phase_envelope)
 
         # remove last value. t_tot_pt = t_tot + 1. Last value is always 0. It is only needed in the loop on the pulses.
