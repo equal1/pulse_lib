@@ -204,6 +204,38 @@ class loop_obj():
         cpy.data = lhs / cpy.data
         return cpy
 
+    def __floordiv__(self, rhs):
+        cpy = copy.copy(self)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
+            cpy.data = cpy_data // other_data
+        else:
+            cpy.data //= rhs
+        return cpy
+
+    def __mod__(self, rhs):
+        cpy = copy.copy(self)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
+            cpy.data = cpy_data % other_data
+        else:
+            cpy.data %= rhs
+        return cpy
+
+    def __pow__(self, rhs):
+        cpy = copy.copy(self)
+        if isinstance(rhs, loop_obj):
+            cpy_data, other_data = loop_obj.__combine_axis(cpy, rhs)
+            cpy.data = cpy_data ** other_data
+        else:
+            cpy.data = cpy.data ** rhs
+        return cpy
+
+    def __rpow__(self, lhs):
+        cpy = copy.copy(self)
+        cpy.data = lhs ** cpy.data
+        return cpy
+
     def __round__(self, ndigits=None):
         cpy = copy.copy(self)
         cpy.data = np.round(self.data, ndigits)
@@ -312,7 +344,6 @@ class loop_obj():
             return cpy
         else:
             return ufunc(inputs[0], self.data, *inputs[2:], **kwargs)
-        return NotImplemented
 
     def __copy__(self):
         cpy = loop_obj()
@@ -515,3 +546,8 @@ if __name__ == '__main__':
     print(lp2.data)
 
     print(np.array(lp3))
+
+    print("sqr", (lp**2).data)
+    print("pow", (2**lp).data)
+    print("//", (lp//2).data)
+    print("%", (lp % 1).data)
