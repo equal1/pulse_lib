@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.49] - 2025-05-09
+
+- Added operations //, ** and % to loop_obj.
+- Fixed a possible bug in chirp rendering
+
 ## \[1.7.48] - 2025-05-07
 
 - Fixed Keysight_QS waveform memory allocation
