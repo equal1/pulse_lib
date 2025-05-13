@@ -26,6 +26,7 @@ class Waveform:
         1: scale 5x -> 200 MSa/s
         3: use custom prescaler
     """
+    __hash: float | None = None
 
     @property
     def extra_samples(self):
@@ -42,6 +43,17 @@ class Waveform:
     @property
     def instruction_duration(self):
         return self.offset + self.duration + self.extra_samples
+
+    def __hash__(self):
+        if self.__hash is None:
+            hsh = self.amplitude + self.frequency/1000 + self.prephase + self.postphase + self.duration + self.offset
+            if self.am_envelope is not None:
+                hsh += np.sum(self.am_envelope)
+            if self.pm_envelope is not None:
+                hsh += np.sum(self.pm_envelope)
+            hsh = int(hsh*1000)
+            self.__hash = hsh
+        return self.__hash
 
     def __eq__(self, other):
         return (self.duration == other.duration
@@ -119,6 +131,7 @@ class IQSequenceBuilder:
         self.pending_instruction = None
         self.sequence = []
         self.waveforms = []
+        self.waveform_dict = {}
 
     def shift_phase(self, t, phase_shift):
         if abs(phase_shift) < 2*np.pi/2**18:
@@ -372,9 +385,11 @@ class IQSequenceBuilder:
 
     def _get_waveform_index(self, waveform: Waveform):
         try:
-            index = self.waveforms.index(waveform)
-        except ValueError:
+            # use dictionary for fast lookup
+            index = self.waveform_dict[waveform]
+        except KeyError:
             index = len(self.waveforms)
+            self.waveform_dict[waveform] = index
             self.waveforms.append(waveform)
         return index
 
