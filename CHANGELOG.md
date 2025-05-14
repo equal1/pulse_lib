@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.50] - 2025-05-14
+
+- Optimized Keysight_QS waveform compilation.
+
 ## \[1.7.49] - 2025-05-09
 
 - Added operations //, ** and % to loop_obj.
