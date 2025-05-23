@@ -156,7 +156,7 @@ class SequencerChannel:
         self._frequency = 0
         self._phaseI = 0
         self._phaseQ = 90
-        self._waveforms = [None]*64
+        self._waveforms = [None]*256
         self._schedule = []
         self._components = 'IQ'
         self._gainA = 1.0
@@ -198,7 +198,7 @@ class SequencerChannel:
                                            append_zero)
 
     def flush_waveforms(self):
-        self._waveforms = [None]*64
+        self._waveforms = [None]*256
 
     def load_schedule(self, schedule: list[AwgInstruction]):
         self._schedule = schedule

@@ -2,6 +2,7 @@ import numpy as np
 from dataclasses import dataclass
 from qcodes.instrument.base import Instrument
 
+
 class MockM3102A(Instrument):
 
     def __init__(self, name, chassis, slot):
@@ -94,12 +95,13 @@ class ChannelProperties:
     lo_frequency: float = 0
     input_channel: int = 0
 
+
 class ChannelData:
     def __init__(self):
-        all_channels = [1,2,3,4]
+        all_channels = [1, 2, 3, 4]
         self._active_channels = set(all_channels)
-        self._data = {i:None for i in all_channels}
-        self._ch_properties = {i:ChannelProperties() for i in all_channels}
+        self._data = {i: None for i in all_channels}
+        self._ch_properties = {i: ChannelProperties() for i in all_channels}
 
     def get_data(self):
         result = []
@@ -116,4 +118,3 @@ class ChannelData:
 
             result.append(data)
         return result
-
