@@ -2,7 +2,7 @@
 Generic data class where all others should be derived from.
 """
 import copy
-import uuid
+import time
 import logging
 from abc import ABC, abstractmethod
 import numpy as np
@@ -22,7 +22,7 @@ class parent_data(ABC):
     waveform_cache = LruCache(100)
 
     def __init__(self):
-        self.id = uuid.uuid4()
+        self._cache_id = None
 
     @classmethod
     def set_waveform_cache_size(cls, size):
@@ -120,7 +120,10 @@ class parent_data(ABC):
         return waveform
 
     def _get_cached_data_entry(self):
-        return self.waveform_cache[self.id]
+        if self._cache_id is None:
+            t = int(time.perf_counter()*1000)
+            self._cache_id = (id(self) << 32) + (t & 0xFFFF_FFFF)
+        return self.waveform_cache[self._cache_id]
 
     def get_metadata(self, name):
         logger.warning(f'metadata not implemented for {name}')
