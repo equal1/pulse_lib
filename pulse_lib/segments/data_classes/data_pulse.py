@@ -179,6 +179,7 @@ class pulse_data(parent_data):
         self.start_time = 0
         self.end_time = 0
         self._hres = hres
+        self._has_data = False
         self._consolidated = False
         self._preprocessed = False
         self._preprocessed_sample_rate = None
@@ -198,6 +199,7 @@ class pulse_data(parent_data):
         if not delta.is_near_zero:
             self.pulse_deltas.append(delta)
             self._consolidated = False
+            self._has_data = True
         # always update end time
         self.update_end_time(delta.time)
 
@@ -214,19 +216,23 @@ class pulse_data(parent_data):
         """
         if MW_data_object.amplitude != 0:
             self.MW_pulse_data.append(MW_data_object)
+            self._has_data = True
         self.update_end_time(MW_data_object.stop)
 
     def add_chirp(self, chirp):
         self.chirp_data.append(chirp)
+        self._has_data = True
         self.update_end_time(chirp.stop)
 
     def add_custom_pulse_data(self, custom_pulse: custom_pulse_element):
         self.custom_pulse_data.append(custom_pulse)
+        self._has_data = True
         self.update_end_time(custom_pulse.stop)
 
     def add_phase_shift(self, phase_shift: PhaseShift):
         if not phase_shift.is_near_zero:
             self._phase_shifts_consolidated = False
+            self._has_data = True
             self.phase_shifts.append(phase_shift)
         self.update_end_time(phase_shift.time)
 
@@ -284,39 +290,44 @@ class pulse_data(parent_data):
         elif time == -1:
             time = self.end_time
 
-        other_MW_pulse_data = copy.deepcopy(other.MW_pulse_data)
-        shift_start_stop(other_MW_pulse_data, time)
-        other_custom_pulse_data = copy.deepcopy(other.custom_pulse_data)
-        shift_start_stop(other_custom_pulse_data, time)
+        if other._has_data:
+            other_MW_pulse_data = copy.deepcopy(other.MW_pulse_data)
+            shift_start_stop(other_MW_pulse_data, time)
+            other_custom_pulse_data = copy.deepcopy(other.custom_pulse_data)
+            shift_start_stop(other_custom_pulse_data, time)
 
-        other_phase_shifts = copy.deepcopy(other.phase_shifts)
-        shift_time(other_phase_shifts, time)
-        other_pulse_deltas = copy.deepcopy(other.pulse_deltas)
-        shift_time(other_pulse_deltas, time)
-        other_chirps = copy.deepcopy(other.chirp_data)
-        shift_start_stop(other_chirps, time)
+            other_phase_shifts = copy.deepcopy(other.phase_shifts)
+            shift_time(other_phase_shifts, time)
+            other_pulse_deltas = copy.deepcopy(other.pulse_deltas)
+            shift_time(other_pulse_deltas, time)
+            other_chirps = copy.deepcopy(other.chirp_data)
+            shift_start_stop(other_chirps, time)
 
-        self.pulse_deltas += other_pulse_deltas
-        self.MW_pulse_data += other_MW_pulse_data
-        self.custom_pulse_data += other_custom_pulse_data
-        self.phase_shifts += other_phase_shifts
-        self.chirp_data += other_chirps
+            self.pulse_deltas += other_pulse_deltas
+            self.MW_pulse_data += other_MW_pulse_data
+            self.custom_pulse_data += other_custom_pulse_data
+            self.phase_shifts += other_phase_shifts
+            self.chirp_data += other_chirps
 
-        self._consolidated = False
-        self._phase_shifts_consolidated = False
+            self._has_data = True
+            self._consolidated = False
+            self._phase_shifts_consolidated = False
+
         self.update_end_time(time + other.total_time)
 
     def __copy__(self):
         # NOTE: Copy is called in pulse_data_all, before adding virtual channels.
         #       It is also called when a dimension is added in looping.
-        self._consolidate()
         my_copy = pulse_data()
-        my_copy.pulse_deltas = copy.deepcopy(self.pulse_deltas)
-        my_copy.MW_pulse_data = copy.deepcopy(self.MW_pulse_data)
-        my_copy.phase_shifts = copy.copy(self.phase_shifts)
-        my_copy.custom_pulse_data = copy.deepcopy(self.custom_pulse_data)
-        my_copy.chirp_data = copy.deepcopy(self.chirp_data)
-        my_copy.start_time = copy.copy(self.start_time)
+        if self._has_data:
+            self._consolidate()
+            my_copy.pulse_deltas = copy.deepcopy(self.pulse_deltas)
+            my_copy.MW_pulse_data = copy.deepcopy(self.MW_pulse_data)
+            my_copy.phase_shifts = copy.copy(self.phase_shifts)
+            my_copy.custom_pulse_data = copy.deepcopy(self.custom_pulse_data)
+            my_copy.chirp_data = copy.deepcopy(self.chirp_data)
+            my_copy._has_data = True
+        my_copy.start_time = self.start_time
         my_copy.end_time = self.end_time
         my_copy._hres = self._hres
         my_copy._consolidated = self._consolidated
@@ -331,19 +342,26 @@ class pulse_data(parent_data):
         '''
         define addition operator for pulse_data object
         '''
-        new_data = pulse_data()
-        new_data.start_time = copy.copy(self.start_time)
-        new_data._hres = self._hres
 
         if isinstance(other, pulse_data):
-            new_data.pulse_deltas = self.pulse_deltas + other.pulse_deltas
-            new_data.MW_pulse_data = self.MW_pulse_data + other.MW_pulse_data
-            new_data.phase_shifts = self.phase_shifts + other.phase_shifts
-            new_data.custom_pulse_data = self.custom_pulse_data + other.custom_pulse_data
-            new_data.chirp_data = self.chirp_data + other.chirp_data
-            new_data.end_time = max(self.end_time, other.end_time)
+            if other._has_data:
+                new_data = pulse_data()
+                new_data.start_time = self.start_time
+                new_data._hres = self._hres
+                new_data.pulse_deltas = self.pulse_deltas + other.pulse_deltas
+                new_data.MW_pulse_data = self.MW_pulse_data + other.MW_pulse_data
+                new_data.phase_shifts = self.phase_shifts + other.phase_shifts
+                new_data.custom_pulse_data = self.custom_pulse_data + other.custom_pulse_data
+                new_data.chirp_data = self.chirp_data + other.chirp_data
+                new_data.end_time = max(self.end_time, other.end_time)
+                new_data._has_data = True
+                return new_data
+            return self
 
         elif isinstance(other, Number):
+            new_data = pulse_data()
+            new_data.start_time = self.start_time
+            new_data._hres = self._hres
             # copy, because only new elements added to list
             new_pulse = copy.copy(self.pulse_deltas)
             new_pulse.insert(0, pulse_delta(0, other, 0))
@@ -355,45 +373,51 @@ class pulse_data(parent_data):
             new_data.custom_pulse_data = copy.copy(self.custom_pulse_data)
             new_data.chirp_data = copy.copy(self.chirp_data)
             new_data.end_time = self.end_time
+            new_data._has_data = self._has_data
 
+            return new_data
         else:
             raise TypeError(f'Cannot add pulse_data to {type(other)}')
 
-        return new_data
 
     def __iadd__(self, other):
         '''
         define addition operator for pulse_data object
         '''
         if isinstance(other, pulse_data):
-            self.pulse_deltas += other.pulse_deltas
-            self.MW_pulse_data += other.MW_pulse_data
-            self.phase_shifts += other.phase_shifts
-            self.custom_pulse_data += other.custom_pulse_data
-            self.chirp_data += other.chirp_data
+            if other._has_data:
+                self.pulse_deltas += other.pulse_deltas
+                self.MW_pulse_data += other.MW_pulse_data
+                self.phase_shifts += other.phase_shifts
+                self.custom_pulse_data += other.custom_pulse_data
+                self.chirp_data += other.chirp_data
+                self._consolidated = False
+                self._phase_shifts_consolidated = False
+                self._has_data = True
             self.end_time = max(self.end_time, other.end_time)
-            self._phase_shifts_consolidated = False
 
         elif isinstance(other, Number):
             self.pulse_deltas.insert(0, pulse_delta(0, other, 0))
             self.pulse_deltas.append(pulse_delta(np.inf, -other, 0))
+            self._consolidated = False
 
         else:
             raise TypeError(f'Cannot add pulse_data to {type(other)}')
 
-        self._consolidated = False
         return self
 
     def __mul__(self, other):
         '''
         multiplication operator for segment_single
         '''
-        # consolidate to reduce number of elements.
-        # multiplication is applied during rendering a good moment to reduce number of elements.
-        self._consolidate()
-        new_data = pulse_data()
+        if not isinstance(other, Number):
+            raise TypeError(f'Cannot multiply pulse_data with {type(other)}')
 
-        if isinstance(other, Number):
+        if self._has_data:
+            # consolidate to reduce number of elements.
+            # multiplication is applied during rendering a good moment to reduce number of elements.
+            self._consolidate()
+            new_data = pulse_data()
             new_data.pulse_deltas = [item*other for item in self.pulse_deltas]
 
             new_data.MW_pulse_data = copy.deepcopy(self.MW_pulse_data)
@@ -414,10 +438,10 @@ class pulse_data(parent_data):
             new_data._hres = self._hres
             new_data._consolidated = self._consolidated
             new_data._phase_shifts_consolidated = self._phase_shifts_consolidated
+            new_data._has_data = True
+            return new_data
         else:
-            raise TypeError(f'Cannot multiply pulse_data with {type(other)}')
-
-        return new_data
+            return self
 
     def _consolidate(self):
         # merge deltas with same time.
