@@ -26,3 +26,10 @@ class QbloxConfig:
     Use dry_run=True in combination with store_programs=True to view the
     simulated output of the Qblox modules without using the hardware.
     """
+
+    iq_waveform_per_qubit_pulse: bool = False
+    """
+    If True generates an IQ waveform pair for every qubit pulse where the phase
+    and amplitude are encoded in the waveforms.
+    AWG gain will be fixed on 1.0 for I and Q.
+    """

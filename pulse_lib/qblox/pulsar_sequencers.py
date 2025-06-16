@@ -540,6 +540,7 @@ class IQSequenceBuilder(SequenceBuilderBase):
         self._t_next_latch_event = None
         self._ilatch_event = 0
         self._latch_events = []
+        self._current_gain = None
 
         if mixer_gain is not None:
             self.seq.mixer_gain_ratio = mixer_gain[1]/mixer_gain[0]
@@ -567,6 +568,16 @@ class IQSequenceBuilder(SequenceBuilderBase):
         # NOTE: There must be some padding between pulses if they are not aligned.
         #       Anyways, it is always better to have some padding between pulses.
 
+        if QbloxConfig.iq_waveform_per_qubit_pulse:
+            if waveform.amod is None:
+                waveform.amod = amplitude
+            else:
+                waveform.amod *= amplitude
+            wave_ids = self.register_sinewave_iq(waveform)
+            self._set_gain(t_pulse, 1.0, 1.0)
+            self.seq.shaped_pulse(wave_ids[0], None, wave_ids[1], None, t_offset=t_pulse)
+            return
+
         if abs(waveform.frequency) > 1:
             if abs(waveform.frequency) > 400e6:
                 raise Exception(f'Waveform frequency {waveform.frequency/1e6:5.1f} MHz out of range')
@@ -584,18 +595,16 @@ class IQSequenceBuilder(SequenceBuilderBase):
                 self.shift_phase(PulsarConfig.ceil(t_end), delta_phase)
             else:
                 wave_ids = self.register_sinewave_iq(waveform)
-                self.seq.shaped_pulse(wave_ids[0], amplitude,
-                                      wave_ids[1], amplitude,
-                                      t_offset=t_pulse)
+                self._set_gain(t_pulse, amplitude, amplitude)
+                self.seq.shaped_pulse(wave_ids[0], None, wave_ids[1], None, t_offset=t_pulse)
                 # Adjust NCO after driving with other frequency
                 delta_phase = w*waveform.duration
                 self.shift_phase(PulsarConfig.ceil(t_end), delta_phase)
 
         elif not isinstance(waveform.phmod, Number):
             wave_ids = self.register_sinewave_iq(waveform)
-            self.seq.shaped_pulse(wave_ids[0], amplitude,
-                                  wave_ids[1], amplitude,
-                                  t_offset=t_pulse)
+            self._set_gain(t_pulse, amplitude, amplitude)
+            self.seq.shaped_pulse(wave_ids[0], None, wave_ids[1], None, t_offset=t_pulse)
         else:
             # frequency is less than 1 Hz make it 0.
             waveform.frequency = 0
@@ -611,7 +620,8 @@ class IQSequenceBuilder(SequenceBuilderBase):
                 ampQ = amplitude * np.sin(phase)
                 # same wave for I and Q
                 wave_id = self.register_sinewave(waveform)
-                self.seq.shaped_pulse(wave_id, ampI, wave_id, ampQ, t_offset=t_pulse)
+                self._set_gain(t_pulse, ampI, ampQ)
+                self.seq.shaped_pulse(wave_id, None, wave_id, None, t_offset=t_pulse)
 
     def _add_boxcar_pulse(self, amplitude, phase, t_pulse, t_start, t_end):
         ampI = amplitude * np.cos(phase)
@@ -623,21 +633,28 @@ class IQSequenceBuilder(SequenceBuilderBase):
         if duration < 200:
             # Create square waveform with offset
             wave_id = self._register_squarewave(t_start_offset, duration)
-            self.seq.shaped_pulse(wave_id, ampI, wave_id, ampQ, t_offset=t_pulse)
+            self._set_gain(t_pulse, ampI, ampQ)
+            self.seq.shaped_pulse(wave_id, None, wave_id, None, t_offset=t_pulse)
         elif t_start_offset == 0 and t_end_offset == 0:
             # Create aligned block pulse with offset
             self.seq.block_pulse(duration, ampI, ampQ, t_offset=t_pulse)
         else:
             # Create square waveform for start and end, and use offset in between.
+            self._set_gain(t_pulse, ampI, ampQ)
             if t_start_offset:
                 wave_id_start = self._register_squarewave(t_start_offset, 4-t_start_offset)
-                self.seq.shaped_pulse(wave_id_start, ampI, wave_id_start, ampQ, t_offset=t_pulse)
+                self.seq.shaped_pulse(wave_id_start, None, wave_id_start, None, t_offset=t_pulse)
             block_duration = PulsarConfig.floor(t_end) - PulsarConfig.ceil(t_start)
             self.seq.block_pulse(block_duration, ampI, ampQ,
                                  t_offset=PulsarConfig.ceil(t_start))
             if t_end_offset:
                 wave_id_end = self._register_squarewave(0, t_end_offset)
-                self.seq.shaped_pulse(wave_id_end, ampI, wave_id_end, ampQ, t_offset=t_end-t_end_offset)
+                self.seq.shaped_pulse(wave_id_end, None, wave_id_end, None, t_offset=t_end-t_end_offset)
+
+    def _set_gain(self, t, gain0, gain1):
+        if self._current_gain != (gain0, gain1):
+            self.seq.set_gain(gain0, gain1, t_offset=t)
+            self._current_gain = (gain0, gain1)
 
     def _register_squarewave(self, offset, duration):
         wave_id = f'square_{offset}_{duration}'
@@ -685,6 +702,8 @@ class IQSequenceBuilder(SequenceBuilderBase):
         self.seq.chirp(t_end-t_start, amplitude,
                        start_frequency, stop_frequency,
                        t_offset=t_start)
+        # update gain setting
+        self._current_gain = (amplitude, amplitude)
         # restore NCO frequency if it is valid.
         if self._has_valid_nco_freq():
             self.seq.set_frequency(self.nco_frequency, t_offset=t_end)
