@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.52] - 2025-06-16
+
+- Added Qblox option `iq_waveform_per_qubit_pulse` to reduce number of Q1ASM instructions.
+- Qblox only set gain when it has changed (reduction Q1ASM statements)
+
 ## \[1.7.51] - 2025-06-13
 
 - Optimized pre-compilation.
