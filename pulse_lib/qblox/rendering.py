@@ -26,6 +26,7 @@ class SineWaveform:
         res = (self.duration == other.duration
                and self.frequency == other.frequency
                and self.phase == other.phase
+               and self.offset == other.offset
                and np.all(self.amod == other.amod)
                and np.all(self.phmod == other.phmod)
                )
