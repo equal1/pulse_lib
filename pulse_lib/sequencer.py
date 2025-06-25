@@ -50,6 +50,7 @@ class sequencer():
         self._shape = (1,)
         self._sweep_index = [0]
         self.sequence = list()
+        self.metadata = {}
         self.uploader = upload_module
         self._digitizer_channels = digitizer_channels
         self._awg_channels = awg_channels
@@ -258,9 +259,9 @@ class sequencer():
             set_param = index_param(par_name, self.labels[i], self.units[i], self, dim=i)
             self.params.append(set_param)
             setattr(self, par_name, set_param)
+        self._original_params = self.params
 
     def _create_metadata(self):
-        self.metadata = {}
         for i, pc in enumerate(self.sequence):
             md = pc.get_metadata()
             self.metadata[('pc%i' % i)] = md
@@ -280,6 +281,34 @@ class sequencer():
                 }
         if axis_info:
             self.metadata["axes"] = axis_info
+
+    def reorder_sweep_axis(self, new_order: list[int | Ellipsis.__class__] | list[str | Ellipsis.__class__]):
+        """
+        new_order can specify the full axis list, but also innermost and outermost separated by Ellipsis.
+        Note: params order is inner loop to outer loop. Thus by default: [param_a(axis=0), param_b(axis=1), ...]
+        """
+        n_params = len(self.params)
+        initial_indexes = list(range(n_params))
+        param_names = [p.name for p in self._original_params]
+        head = []
+        tail = []
+        insert = head
+        for i in new_order:
+            if isinstance(i, int):
+                insert.append(i)
+                initial_indexes.remove(i)
+            elif isinstance(i, str):
+                index = param_names.index(i)
+                insert.append(index)
+                initial_indexes.remove(index)
+            elif i is Ellipsis:
+                if insert == tail:
+                    raise Exception("Only 1 Ellipsis is allowed in order")
+                insert = tail
+
+        self.params = [self._original_params[i] for i in (head + initial_indexes + tail)]
+
+        self._create_metadata()
 
     def voltage_compensation(self, compensate):
         '''

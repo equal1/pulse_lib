@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.53] - 2025-06-25
+
+- Added `sequence.reorder_sweep_axis()` to change the loop order of the sequence.
+
 ## \[1.7.52] - 2025-06-16
 
 - Added Qblox option `iq_waveform_per_qubit_pulse` to reduce number of Q1ASM instructions.
