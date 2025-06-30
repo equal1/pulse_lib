@@ -12,7 +12,7 @@ import numpy as np
 
 from pulse_lib.segments.utility.rounding import iround
 from .data_generic import parent_data
-from .data_IQ import envelope_generator
+from .data_IQ import envelope_generator, IQ_data_single, Chirp
 
 logger = logging.getLogger(__name__)
 
@@ -379,7 +379,6 @@ class pulse_data(parent_data):
         else:
             raise TypeError(f'Cannot add pulse_data to {type(other)}')
 
-
     def __iadd__(self, other):
         '''
         define addition operator for pulse_data object
@@ -556,7 +555,7 @@ class pulse_data(parent_data):
             self._breaks_processed = True
             return
 
-        if len(self.pulse_deltas) > 1:
+        if True or len(self.pulse_deltas) > 1:
             # add breaks as 0.0 delta
             for time in breaks:
                 self.pulse_deltas.append(pulse_delta(time))
@@ -611,10 +610,10 @@ class pulse_data(parent_data):
 
         self._phase_shifts_consolidated = True
 
-    def get_data_elements(self, break_ramps=False):
+    def get_data_elements(self, break_ramps: bool = False):
         '''
         Args:
-            break_ramps (bool):
+            break_ramps:
                 if True breaks pulse_deltas on custom pulses and MW pulses to
                 allow proper rendering by Qblox uploader.
         '''
@@ -636,7 +635,15 @@ class pulse_data(parent_data):
         for time, duration, v_start, v_stop in zip(self._times, self._intervals,
                                                    self._amplitudes, self._amplitudes_end):
             elements.append(OffsetRamp(time, time+duration, v_start, v_stop))
-        elements.sort(key=lambda p: (p.start, p.stop))
+
+        PhaseShift.order = 1
+        IQ_data_single.order = 2
+        Chirp.order = 3
+        custom_pulse_element.order = 4
+        OffsetRamp.order = 5
+
+        elements.sort(key=lambda p: (p.start, p.order, p.stop))
+
         return elements
 
     def get_IQ_data(self, gain, frequency_shift, phase_shift):
