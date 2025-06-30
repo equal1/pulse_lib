@@ -283,9 +283,21 @@ class sequencer():
             self.metadata["axes"] = axis_info
 
     def reorder_sweep_axis(self, new_order: list[int | Ellipsis.__class__] | list[str | Ellipsis.__class__]):
-        """
-        new_order can specify the full axis list, but also innermost and outermost separated by Ellipsis.
-        Note: params order is inner loop to outer loop. Thus by default: [param_a(axis=0), param_b(axis=1), ...]
+        """Changes the order of the sweep axis.
+        By default the axis with index 0 is the innermost loop.
+        This method sets the specified order from innermost to outermost loop.
+
+        Args:
+            new_order:
+                New looping order from innermost to outermost loop.
+                Axis can be specified by axis index or name.
+                Ellipsis can be used to specify the remaining axis.
+
+        Examples:
+            sequence.reorder_sweep_axis([2, 1, 0])  # axis 2 becomes innermost loop and 0 outermost loop.
+            sequence.reorder_sweep_axis([2, ...])  # axis 2 becomes innermost loop (followed by 0 and 1)
+            sequence.reorder_sweep_axis([..., 1])  # axis 1 becomes outermost loop
+            sequence.reorder_sweep_axis(["amplitude", "frequency", "t_wait"])
         """
         n_params = len(self.params)
         initial_indexes = list(range(n_params))
