@@ -23,7 +23,8 @@ class segment_base():
 
     For an example, look in the data classes files.
     '''
-    def __init__(self, name, data_object, segment_type = 'render'):
+
+    def __init__(self, name, data_object, segment_type='render'):
         '''
         Args:
             name (str): name of the segment usually the channel name
@@ -79,7 +80,7 @@ class segment_base():
         '''
         resets the time back to zero after a certain point
         Args:
-            time (double) : (optional), after time to reset back to 0. Note that this is absolute time and not rescaled time.
+            time (double) : after time to reset back to 0. Note that this is absolute time and not rescaled time.
         '''
         self.data_tmp.reset_time(time)
         return self.data_tmp
@@ -109,7 +110,6 @@ class segment_base():
             self.data_tmp.reset_time(None)
         return self.data_tmp
 
-
     @property
     def setpoints(self):
         return self._setpoints
@@ -126,7 +126,8 @@ class segment_base():
             # Put it in a data_container to maintain pulse_lib structure.
             data_item = data_container(data_item)
 
-        # To avoid unnecessary copying of data we first slice data, set self.data=None, copy, and then restore data in self.
+        # To avoid unnecessary copying of data we first slice data,
+        # set self.data=None, copy, and then restore data in self.
         # This trick makes the indexing operation orders faster.
         data_org = self.data
         self.data = None
@@ -210,8 +211,8 @@ class segment_base():
         '''
         if self._pulse_data_all is None:
             if (len(self.reference_channels) == 0
-                and len(self.references_markers) == 0
-                and len(self.IQ_ref_channels)== 0):
+                    and len(self.references_markers) == 0
+                    and len(self.IQ_ref_channels) == 0):
                 self._pulse_data_all = self.data
             else:
                 self._pulse_data_all = copy.copy(self.data)
@@ -290,19 +291,19 @@ class segment_base():
             ref_channel_states = copy.copy(ref_channel_states)
             ref_channel_states.start_phases_all = None
             ref_names = [ref.virtual_channel.name for ref in self.IQ_ref_channels]
-            ref_channel_states.start_phase = {key:value
-                                              for (key,value) in ref_channel_states.start_phase.items()
+            ref_channel_states.start_phase = {key: value
+                                              for (key, value) in ref_channel_states.start_phase.items()
                                               if key in ref_names}
 
         return self._get_data_all_at(index).render(sample_rate, ref_channel_states)
 
-    def v_max(self, index, sample_rate = 1e9):
+    def v_max(self, index, sample_rate=1e9):
         return self._get_data_all_at(index).get_vmax(sample_rate)
 
-    def v_min(self, index, sample_rate = 1e9):
+    def v_min(self, index, sample_rate=1e9):
         return self._get_data_all_at(index).get_vmin(sample_rate)
 
-    def integrate(self, index, sample_rate = 1e9):
+    def integrate(self, index, sample_rate=1e9):
         '''
         Get integral value of the waveform (e.g. to calculate an automatic compensation)
 
@@ -315,14 +316,16 @@ class segment_base():
         '''
         return self._get_data_all_at(index).integrate_waveform(sample_rate)
 
-    def plot_segment(self, index = [0], render_full = True, sample_rate = 1e9):
+    def plot_segment(self, index=[0], render_full=True, sample_rate=1e9):
         '''
         Args:
             index : index of which segment to plot
-            render full (bool) : do full render (e.g. also get data form virtual channels). Put True if you want to see the waveshape send to the AWG.
+            render full (bool) :
+                do full render (e.g. also get data form virtual channels).
+                Put True if you want to see the waveshape send to the AWG.
             sample_rate (float): standard 1 Gs/s
         '''
-        if render_full == True:
+        if render_full is True:
             pulse_data_curr_seg = self._get_data_all_at(index)
         else:
             pulse_data_curr_seg = self.data[map_index(index, self.data.shape)]
@@ -330,7 +333,7 @@ class segment_base():
         line = '-' if self.type == 'render' else ':'
         try:
             LO = self._qubit_channel.iq_channel.LO
-        except:
+        except Exception:
             LO = None
 
         y = pulse_data_curr_seg.render(sample_rate, LO=LO)
@@ -338,7 +341,7 @@ class segment_base():
         plt.plot(x, y, line, label=self.name)
         plt.xlabel("time (ns)")
         plt.ylabel("amplitude (mV)")
-        plt.legend()
+        # plt.legend()
 
     def get_metadata(self):
         # Uses highest index of sequencer array (data_tmp)
