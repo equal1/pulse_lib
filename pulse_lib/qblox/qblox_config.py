@@ -33,3 +33,12 @@ class QbloxConfig:
     and amplitude are encoded in the waveforms.
     AWG gain will be fixed on 1.0 for I and Q.
     """
+
+    sine_interpolation_step: int | None = None
+    """
+    Step size for interpolation of sine waves < 1 MHz.
+
+    Recommended value is 40 ns: interpolation error -45 dB @ 1 MHz; max 200 us sine output.
+    Minimum value is 16 ns: interpolation error -60 dB @ 1 MHz; max 80 us sine output.
+    A value of 100 ns gives an interpolation error -29 dB @ 1 MHz; max 500 us sine output.
+    """

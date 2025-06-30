@@ -19,12 +19,14 @@ from qblox_instruments import __version__ as qblox_version
 from pulse_lib.segments.conditional_segment import conditional_segment
 from pulse_lib.segments.data_classes.data_IQ import IQ_data_single, Chirp
 from pulse_lib.segments.data_classes.data_pulse import (
-        PhaseShift, custom_pulse_element, OffsetRamp)
+        PhaseShift, custom_pulse_element, OffsetRamp
+        )
 from pulse_lib.uploader.uploader_funcs import get_iq_nco_idle_frequency, merge_markers
 
-from .rendering import SineWaveform, get_modulation
+from .linear_interpolation import InterpolationCompiler
 from .pulsar_sequencers import (
         VoltageSequenceBuilder,
+        InterpolatingVoltageSequenceBuilder,
         IQSequenceBuilder,
         AcquisitionSequenceBuilder,
         SequenceBuilderBase,
@@ -33,6 +35,7 @@ from .pulsar_sequencers import (
         LatchEvent)
 from .qblox_config import QbloxConfig
 from .qblox_conditional import get_conditional_channel
+from .rendering import SineWaveform, get_modulation
 
 
 logger = logging.getLogger(__name__)
@@ -750,8 +753,13 @@ class UploadAggregator:
         channel_info = self.channels[channel_name]
 
         t_offset = iround(self.max_pre_start_ns + channel_info.delay_ns)
-        seq = VoltageSequenceBuilder(channel_name, self.program[channel_name],
-                                     rc_time=channel_info.bias_T_RC_time)
+        sine_interpolation_step = QbloxConfig.sine_interpolation_step
+        if sine_interpolation_step:
+            seq = InterpolatingVoltageSequenceBuilder(
+                channel_name, self.program[channel_name], rc_time=channel_info.bias_T_RC_time)
+        else:
+            seq = VoltageSequenceBuilder(channel_name, self.program[channel_name],
+                                         rc_time=channel_info.bias_T_RC_time)
         scaling = 1/(channel_info.attenuation * seq.max_output_voltage*1000)
 
         markers = self.get_markers_seq(job, channel_name)
@@ -766,11 +774,16 @@ class UploadAggregator:
                 seg_ch = seg[channel_name]
             data = seg_ch._get_data_all_at(job.index)
             seq.hres = data._hres
+
             # NOTE: break_ramps ensures that there is no start of sin or
             # custom pulse during ramp. All ramps are
             # broken at start/end of sine and custom pulses.
             # Elements are ordered such that the ramps are added as last.
             entries = data.get_data_elements(break_ramps=True)
+            if sine_interpolation_step:
+                interpolations = InterpolationCompiler(sine_interpolation_step, entries)
+                seq.set_interpolation_sections(interpolations.sections, interpolation_step=sine_interpolation_step)
+
             for e in entries:
                 # NOTE: alignment is done in VoltageSequenceBuilder
                 if isinstance(e, OffsetRamp):
@@ -898,6 +911,7 @@ class UploadAggregator:
             elif isinstance(e, IQ_data_single):
                 t_start = e.start + seg_start
                 t_end = e.stop + seg_start
+                # TODO: high resolution duration
                 wave_duration = iround(e.stop - e.start)  # 1 ns resolution for waveform
                 amod, phmod = get_modulation(e.envelope, wave_duration)
                 sinewave = SineWaveform(wave_duration, e.frequency-lo_freq,

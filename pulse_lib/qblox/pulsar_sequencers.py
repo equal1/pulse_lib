@@ -18,6 +18,7 @@ if Version(q1pulse_version) < Version('0.9.0'):
 from q1pulse.lang.conditions import CounterFlags
 
 from .filtering import low_pass_window
+from .linear_interpolation import Interpolate
 from .qblox_config import QbloxConfig
 
 
@@ -488,7 +489,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         waveform = self._waveform
         n = t_end - self._t_wave_start
         if self.verbose:
-            logger.info(f"EMIT waveform {t_end}: {n}")
+            logger.info(f"EMIT waveform {t_end}: {n} ({self._t_wave_end})")
         if n <= 0:
             return
         self._play_waveform(self._t_wave_start, waveform[:n].copy())
@@ -515,16 +516,216 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
             # all zeros: nothing to play
             return
 
+        waveid = self._register_waveform(waveform)
+        self.seq.shaped_pulse(waveid, 1.0, t_offset=t_start)
+
+    def _register_waveform(self, waveform):
         for index, data in enumerate(self._waveforms):
             if len(data) == len(waveform) and np.allclose(data, waveform):
                 waveid = f'wave_{index}'
-                break
+                return waveid
+        index = len(self._waveforms)
+        waveid = f'wave_{index}'
+        self._waveforms.append(waveform)
+        self.seq.add_wave(waveid, waveform)
+        return waveid
+
+
+@dataclass
+class LinearInterpolation:
+    t_start: int
+    t_stop: int
+    v_start: float = 0.0
+    v_stop: float = 0.0
+
+
+class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
+    """
+    Voltage sequence builder with interpolation for low frequency sine waves.
+
+    Interpolation of a long sine is always within a ramp duration.
+    The InterpolationCompiler breaks long sines at ramp start/end to ensure this.
+    There can be multiple sines and 1 ramp in the interpolated output.
+    Interpolation consists of start waveform, linear pieces and end waveform.
+    """
+
+    def __init__(self, name: str, sequencer, rc_time: float | None = None):
+        super().__init__(name, sequencer, rc_time)
+        self._interpolation_sections: list[Interpolate] = []
+        self._interpolate: Interpolate | None = None
+        self._interpolate_index = -1
+        self._linear_interpolations: list[LinearInterpolation] = []
+        self._tail_waveform = None
+
+    def set_interpolation_sections(self, sections: list[Interpolate], interpolation_step: int):
+        self._interpolation_sections = sections
+        self._interpolate_index = -1
+        self._interpolation_step = interpolation_step
+
+        if len(sections) > 0:
+            if self.verbose:
+                logger.info(f"Interpolating sines {sections}")
+            self._set_next_interpolation()
+
+    def _set_next_interpolation(self):
+        if self._interpolate_index + 1 < len(self._interpolation_sections):
+            self._interpolate_index += 1
+            self._interpolate = self._interpolation_sections[self._interpolate_index]
+            # start after current waveform end. With minimum wave duration of 4 ns.
+            # Currently it is sufficient to ceil to 4 ns.
+            intp_start = PulsarConfig.ceil(self._interpolate.start)
+            intp_end = PulsarConfig.floor(self._interpolate.stop)
+            self._linear_interpolations = [
+                LinearInterpolation(start, start + self._interpolation_step)
+                for start in range(intp_start, intp_end-self._interpolation_step+1, self._interpolation_step)
+                ]
+            interpolation_stop = self._linear_interpolations[-1].t_stop
+            if interpolation_stop < self._interpolate.stop:
+                self._tail_waveform = np.zeros(8000)
+            else:
+                self._tail_waveform = None
         else:
-            index = len(self._waveforms)
-            waveid = f'wave_{index}'
-            self._waveforms.append(waveform)
-            self.seq.add_wave(waveid, waveform)
-        self.seq.shaped_pulse(waveid, 1.0, t_offset=t_start)
+            self._interpolate = None
+            self._linear_interpolations = []
+
+    def interpolate(self, t_start, t_stop) -> list[LinearInterpolation]:
+        if self._interpolate is None:
+            return []
+        if t_start >= self._interpolate.start and t_stop <= self._interpolate.stop:
+            return self._linear_interpolations
+        else:
+            return []
+
+    def ramp(self, t_start, t_end, v_start, v_end):
+        interpolations = self.interpolate(t_start, t_end)
+        if not interpolations:
+            return super().ramp(t_start, t_end, v_start, v_end)
+
+        if self.verbose:
+            logger.info(f"ramp {t_start}, {t_end}, {v_start}, {v_end}")
+
+        if self._hres:
+            t_start = PulsarConfig.hres_round(t_start)
+            t_end = PulsarConfig.hres_round(t_end)
+        else:
+            t_start = iround(t_start)
+            t_end = iround(t_end)
+
+        dvdt = (v_end - v_start) / (t_end - t_start)
+
+        intp_start = interpolations[0].t_start - t_start
+        intp_stop = interpolations[-1].t_stop - t_start
+        if intp_start > 0:
+            data = v_start + np.linspace(0.0, dvdt*intp_start, intp_start, endpoint=False)
+            self._add_waveform_data(t_start, data)
+
+        for interpol in interpolations:
+            ii_start = interpol.t_start - t_start
+            ii_stop = interpol.t_stop - t_start
+            interpol.v_start += v_start + dvdt*ii_start
+            interpol.v_stop += v_start + dvdt*ii_stop
+
+        if self._tail_waveform is not None:
+            n = t_end - interpolations[-1].t_stop
+            if n == 0:
+                raise Exception("Internal error. Unexpected empty tail in interpolation.")
+            data = np.linspace(v_start+dvdt*intp_stop, v_end, n, endpoint=False)
+            self._tail_waveform[:n] += data
+
+        self._flush_interpolation(t_end)
+
+    def add_sin(self, t_start, t_end, amplitude, frequency, phase):
+        interpolations = self.interpolate(t_start, t_end)
+        if not interpolations:
+            return super().add_sin(t_start, t_end, amplitude, frequency, phase)
+
+        if self.verbose:
+            logger.info(f"interpolated sin {t_start}, {t_end}, {amplitude}, {frequency}")
+        if abs(amplitude) < _lsb_step:
+            return
+
+        if self._hres:
+            t_start = PulsarConfig.hres_round(t_start)
+            t_end = PulsarConfig.hres_round(t_end)
+            i_start = math.floor(t_start + 1e-5)
+            i_end = math.ceil(t_end - 1e-5)
+            t_offset = i_start - t_start
+        else:
+            t_start = iround(t_start)
+            t_end = iround(t_end)
+            i_start = t_start
+            i_end = t_end
+            t_offset = 0
+
+        n_pt = i_end - i_start
+        t = t_offset + np.arange(n_pt)
+        w = 2*np.pi*frequency*1e-9
+        sine_data = amplitude * np.sin(w*t + phase)
+        if self._hres:
+            frac_start = i_start + 1 - t_start
+            frac_end = 1 - i_end + t_end
+            sine_data[0] = frac_start * sine_data[0]
+            sine_data[-1] = frac_end * sine_data[-1]
+
+        self._emit_waveform_part(t_start)
+        intp_start = interpolations[0].t_start - i_start
+        intp_stop = interpolations[-1].t_stop - i_start
+        self._add_waveform_data(i_start, sine_data[: intp_start])
+
+        for interpol in interpolations:
+            ii_start = interpol.t_start - i_start
+            ii_stop = interpol.t_stop - i_start
+            v_start = sine_data[ii_start]
+            # TODO: add 1 extra sample to sine_data?
+            v_stop = sine_data[ii_stop] if ii_stop < n_pt else sine_data[-1]
+            interpol.v_start += v_start
+            interpol.v_stop += v_stop
+
+        if self._tail_waveform is not None:
+            n = len(sine_data) - intp_stop
+            if n == 0:
+                raise Exception("Internal error. Unexpected empty tail in interpolation.")
+            self._tail_waveform[:n] += sine_data[-n:]
+
+    def custom_pulse(self, t_start, t_end, amplitude, custom_pulse):
+        if self.interpolate(t_start, t_end):
+            raise Exception("Internal error. Cannot interpolation custom pulse")
+        super().custom_pulse(t_start, t_end, amplitude, custom_pulse)
+
+    def _copy_tail_waveform(self, t_end):
+        if self._tail_waveform is None:
+            self._rendering = False
+            return
+        t_wave_start = self._linear_interpolations[-1].t_stop
+        if self.verbose:
+            logger.debug(f"copy tail {t_wave_start} {t_end}")
+        self._rendering = True
+        self._t_wave_start = t_wave_start
+        self._t_wave_end = t_end
+        self._v_start = None
+        self._waveform = self._tail_waveform
+        self._tail_waveform = None
+
+    def _flush_interpolation(self, t_end):
+        interpolations = self._linear_interpolations
+        # play samples before interpolation
+        self._emit_waveform(interpolations[0].t_start)
+        if self._rendering:
+            raise Exception("Internal error. Shouldn't be rendering during interpolation")
+        # output linear sections
+        waveform = np.linspace(0.0, 1.0, self._interpolation_step, endpoint=False)
+        waveid = self._register_waveform(waveform)
+        for interpol in interpolations:
+            t_start = interpol.t_start
+            self._update_time_and_markers(t_start, 0)
+            offset = interpol.v_start + self.v_compensation
+            self._set_offset(t_start, offset)
+            self._add_integral(self._interpolation_step * (interpol.v_stop + interpol.v_start)/2)
+            ramp_gain = interpol.v_stop - interpol.v_start
+            self.seq.shaped_pulse(waveid, ramp_gain, t_offset=t_start)
+
+        self._copy_tail_waveform(t_end)
+        self._set_next_interpolation()
 
 
 class IQSequenceBuilder(SequenceBuilderBase):
