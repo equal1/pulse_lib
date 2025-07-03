@@ -115,11 +115,8 @@ class PulsarUploader:
                     raise Exception(f'Resonator must be on same module. '
                                     f'Format {out} is currently not supported for "{name}"')
                 out_ch = [out[1]] if isinstance(out[1], int) else out[1]
-            if Version(q1pulse_version) >= Version('0.11'):
-                q1.add_readout(name, dig_ch.module_name, out_channels=out_ch,
-                               in_channels=dig_ch.channel_numbers)
-            else:
-                q1.add_readout(name, dig_ch.module_name, out_channels=out_ch)
+            q1.add_readout(name, dig_ch.module_name, out_channels=out_ch,
+                           in_channels=dig_ch.channel_numbers)
 
         for name, marker_ch in self.marker_channels.items():
             module = q1.modules[marker_ch.module_name]

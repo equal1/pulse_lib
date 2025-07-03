@@ -12,8 +12,8 @@ import numpy as np
 from packaging.version import Version
 from q1pulse import __version__ as q1pulse_version
 
-if Version(q1pulse_version) < Version('0.9.0'):
-    raise Exception('Upgrade q1pulse to version 0.9+')
+if Version(q1pulse_version) < Version('0.12.0'):
+    raise Exception('Upgrade q1pulse to version 0.12+')
 
 from q1pulse.lang.conditions import CounterFlags
 
@@ -1005,8 +1005,6 @@ class IQSequenceBuilder(SequenceBuilderBase):
         if latch_event.reset:
             self.seq.latch_reset(t_offset=t)
         else:
-            if Version(q1pulse_version) < Version('0.11.5'):
-                raise Exception('Upgrade q1pulse to version 0.11.5+ for correct feedback implementation')
             self.seq.latch_enable(latch_event.enable, t_offset=t)
         # Increment time with time used for latch instruction
         self.t_end = t+4
