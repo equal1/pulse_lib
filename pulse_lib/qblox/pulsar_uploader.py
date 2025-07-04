@@ -283,7 +283,7 @@ class PulsarUploader:
                 job.program[ch_name].nco_frequency = nco_freq
             if data_scaling is not None and acq_threshold is not None: # TODO @@@ refactor data structure acquisiton
                 if not isinstance(data_scaling, Number):
-                    raise Exception(f"Channel '{ch_name}' with feedback cannot have multiple integration times")
+                    raise Exception(f"Channel '{ch_name}' with feedback cannot have multiple measurement times")
                 in_ranges = self.q1instrument.get_input_ranges(ch_name)
                 ch_number = dig_channel.channel_numbers[0]
                 mv2threshold = 1/(in_ranges[ch_number]/2*data_scaling*1000)
@@ -809,7 +809,7 @@ class UploadAggregator:
                 else:
                     raise Exception(f'Unknown pulse element {type(e)}')
 
-        t_end = PulsarConfig.ceil(seg_render.t_end + t_offset)
+        t_end = PulsarConfig.ceil(seg_render.t_end + t_offset) + 4  # add 1 clock tick.
         seq.wait_till(t_end)
 
         compensation_ns = job.upload_info.dc_compensation_duration_ns

@@ -45,5 +45,6 @@ class QbloxConfig:
 
     double_path_encoding: bool = False
     """
-    TODO
+    Use both paths of the sequencer to generate unmodulated pulses.
+    This allows more compact Q1ASM code, but with output limited to only 0.5 of maximum output.
     """

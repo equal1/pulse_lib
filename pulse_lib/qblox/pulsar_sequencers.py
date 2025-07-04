@@ -12,8 +12,8 @@ import numpy as np
 from packaging.version import Version
 from q1pulse import __version__ as q1pulse_version
 
-if Version(q1pulse_version) < Version('0.12.0'):
-    raise Exception('Upgrade q1pulse to version 0.12+')
+if Version(q1pulse_version) < Version("0.12.0"):
+    raise Exception("Upgrade q1pulse to version 0.12+")
 
 from q1pulse.lang.conditions import CounterFlags
 
@@ -30,11 +30,16 @@ def iround(value):
 
 
 class PulsarConfig:
-    ALIGNMENT = 4  # pulses must be aligned on 4 ns boundaries
-    # 8000 samples memory, max 256 waves.
+    if Version(q1pulse_version) >= Version("0.17.3"):
+        ALIGNMENT = 1
+    else:
+        ALIGNMENT = 1 # @@@@@ 4  # pulses must be aligned on 4 ns boundaries
+
+    # Note 8000 samples memory, max 256 waves.
     EMIT_LENGTH1 = 100
     EMIT_LENGTH2 = 200
     EMIT_LENGTH3 = 300
+    EMIT_MIN_GAP = 20
 
     NS_SUB_DIVISION = 5
 
@@ -260,7 +265,9 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         #         self._set_offset(int(t_start), self.v_compensation)
         #     return
 
-        is_long = (t_end - max(t_start, self._t_wave_end)) > 40
+        is_long = (t_end - max(t_start, self._t_wave_end)) > 40 # @@@ constant value
+
+        # @@@ if constant emit with offset from start waveform.
 
         if is_long:
             line_start = PulsarConfig.ceil(max(t_start, self._t_wave_end))
@@ -451,7 +458,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         self._t_constant = 0
 
     def _emit_if_gap(self, t_start):
-        if self._rendering and t_start - self._t_wave_end >= 20:
+        if self._rendering and t_start - self._t_wave_end >= PulsarConfig.EMIT_MIN_GAP:
             # there is a gap
             self._emit_waveform(PulsarConfig.ceil(self._t_wave_end))
 
@@ -461,14 +468,14 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         t_start = int(t_start)
         t_wave_end = self._t_wave_end
         t_gap = t_start - t_wave_end
-        if t_gap >= 20:
+        if t_gap >= PulsarConfig.EMIT_MIN_GAP:
             # there is a significant gap
             self._emit_waveform(PulsarConfig.ceil(t_wave_end))
             return
         t_start = PulsarConfig.floor(t_start)
         if t_gap >= 0:
             t_constant = max(self._t_constant, t_gap)
-            aligned = t_wave_end % 4 == 0
+            aligned = PulsarConfig.offset(t_wave_end) == 0
             length = t_wave_end - self._t_wave_start
             if length > PulsarConfig.EMIT_LENGTH1 and self._equal_voltage and (
                     t_constant >= 4 or aligned):
@@ -837,11 +844,15 @@ class IQSequenceBuilder(SequenceBuilderBase):
                 self.seq.shaped_pulse(wave_id, None, wave_id, None, t_offset=t_pulse)
 
     def _add_boxcar_pulse(self, amplitude, phase, t_pulse, t_start, t_end):
+        """
+        Args:
+            t_pulse: equal to PulsarConfig.floor(t_start)
+        """
         ampI = amplitude * np.cos(phase)
         ampQ = amplitude * np.sin(phase)
         # generate block pulse
-        t_start_offset = t_start % 4
-        t_end_offset = t_end % 4
+        t_start_offset = PulsarConfig.offset(t_start)
+        t_end_offset = PulsarConfig.offset(t_end)
         duration = t_end-t_start
         if duration < 200:
             # Create square waveform with offset
@@ -854,12 +865,13 @@ class IQSequenceBuilder(SequenceBuilderBase):
         else:
             # Create square waveform for start and end, and use offset in between.
             self._set_gain(t_pulse, ampI, ampQ)
+            end_head = PulsarConfig.ceil(t_start)
+            start_tail = PulsarConfig.floor(t_end)
+            block_duration = start_tail - end_head
             if t_start_offset:
-                wave_id_start = self._register_squarewave(t_start_offset, 4-t_start_offset)
+                wave_id_start = self._register_squarewave(t_start_offset, end_head-t_start)
                 self.seq.shaped_pulse(wave_id_start, None, wave_id_start, None, t_offset=t_pulse)
-            block_duration = PulsarConfig.floor(t_end) - PulsarConfig.ceil(t_start)
-            self.seq.block_pulse(block_duration, ampI, ampQ,
-                                 t_offset=PulsarConfig.ceil(t_start))
+            self.seq.block_pulse(block_duration, ampI, ampQ, t_offset=end_head)
             if t_end_offset:
                 wave_id_end = self._register_squarewave(0, t_end_offset)
                 self.seq.shaped_pulse(wave_id_end, None, wave_id_end, None, t_offset=t_end-t_end_offset)
