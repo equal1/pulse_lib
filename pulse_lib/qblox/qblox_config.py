@@ -42,3 +42,8 @@ class QbloxConfig:
     Minimum value is 16 ns: interpolation error -60 dB @ 1 MHz; max 80 us sine output.
     A value of 100 ns gives an interpolation error -29 dB @ 1 MHz; max 500 us sine output.
     """
+
+    double_path_encoding: bool = False
+    """
+    TODO
+    """

@@ -198,6 +198,12 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         self._v_end = None
         self._constant_end = False
 
+        if QbloxConfig.double_path_encoding:
+            # enable nco on 45 degree angle.
+            self.seq.nco_frequency = 0
+            self.seq.set_phase(-0.25)
+            self.max_output_voltage *= 0.5
+
     @property
     def hres(self):
         return self._hres
@@ -713,16 +719,22 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
         if self._rendering:
             raise Exception("Internal error. Shouldn't be rendering during interpolation")
         # output linear sections
-        waveform = np.linspace(0.0, 1.0, self._interpolation_step, endpoint=False)
-        waveid = self._register_waveform(waveform)
+        ramp_waveform = np.linspace(0.0, 1.0, self._interpolation_step, endpoint=False)
+        ramp_id = self._register_waveform(ramp_waveform)
+        if QbloxConfig.double_path_encoding:
+            block_waveform = np.ones(self._interpolation_step, dtype=float)
+            block_id = self._register_waveform(block_waveform)
         for interpol in interpolations:
             t_start = interpol.t_start
             self._update_time_and_markers(t_start, 0)
             offset = interpol.v_start + self.v_compensation
-            self._set_offset(t_start, offset)
-            self._add_integral(self._interpolation_step * (interpol.v_stop + interpol.v_start)/2)
             ramp_gain = interpol.v_stop - interpol.v_start
-            self.seq.shaped_pulse(waveid, ramp_gain, t_offset=t_start)
+            self._add_integral(self._interpolation_step * (interpol.v_stop + interpol.v_start)/2)
+            if not QbloxConfig.double_path_encoding:
+                self._set_offset(t_start, offset)
+                self.seq.shaped_pulse(ramp_id, ramp_gain, t_offset=t_start)
+            else:
+                self.seq.shaped_pulse(ramp_id, ramp_gain, block_id, offset, t_offset=t_start)
 
         self._copy_tail_waveform(t_end)
         self._set_next_interpolation()
