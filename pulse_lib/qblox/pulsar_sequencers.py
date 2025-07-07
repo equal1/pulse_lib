@@ -202,6 +202,8 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         self._v_start = None
         self._v_end = None
         self._constant_end = False
+        # keep track of the last RT command. There must be 0 or >= 4 ns between the commands.
+        self._last_rt_cmd = 0
 
         if QbloxConfig.double_path_encoding:
             # enable nco on 45 degree angle.
@@ -265,15 +267,21 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         #         self._set_offset(int(t_start), self.v_compensation)
         #     return
 
-        is_long = (t_end - max(t_start, self._t_wave_end)) > 40 # @@@ constant value
+        is_long = (t_end - max(t_start, self._t_wave_end)) > 40 # @@@ add to PulsarConfig
 
         # @@@ if constant emit with offset from start waveform.
 
         if is_long:
             line_start = PulsarConfig.ceil(max(t_start, self._t_wave_end))
+            if 0 < line_start - self._last_rt_cmd < 4:
+                # line cannot start on 1, 2, or 3 ns due to RT constraints.
+                line_start = self._last_rt_cmd + 4
             line_end = PulsarConfig.floor(t_end)
             dvdt = (v_end - v_start) / (t_end - t_start)
             if line_start - t_start > 0:
+                if not self._rendering:
+                    # minimum of 4 samples
+                    line_start = PulsarConfig.floor(t_start) + 4
                 self._emit_if_gap(t_start)
                 t_end_wave = line_start
                 v_end_wave = v_start + dvdt * (t_end_wave - t_start)
@@ -365,6 +373,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         # offset is changed by ramp and set_offset calls.
         if self._offset is None or abs(self._offset - v) > _lsb_step:
             self.seq.set_offset(v, t_offset=t)
+            self._last_rt_cmd = t
             self._offset = v
 
     def _ramp(self, t_start, t_end, v_start, v_end):
@@ -382,6 +391,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         if is_ramp:
             self._update_time_and_markers(t_start, duration)
             self.seq.ramp(duration, v_start_comp, v_end_comp, t_offset=t_start, v_after=None)
+            self._last_rt_cmd = t_end
             self._offset = None
         else:
             # sequencer only updates offset, no continuing action: duration=0
@@ -439,9 +449,14 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         if not self._rendering:
             self._rendering = True
             self._t_wave_start = PulsarConfig.floor(t_start)
+            if t_start - self._last_rt_cmd < 4:
+                # NOTE: first waveform cannot start on 1, 2, or 3 ns, due minimum 4 ns RT interval.
+                self._t_wave_start = self._last_rt_cmd
             self._t_wave_end = t_end
             self._v_start = v_start
             self._waveform = np.zeros(8000)
+            # It is not yet the last command, but there shall not be a command before this one.
+            self._last_rt_cmd = self._t_wave_start
         else:
             self._t_wave_end = max(self._t_wave_end, t_end)
 
@@ -531,6 +546,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
 
         waveid = self._register_waveform(waveform)
         self.seq.shaped_pulse(waveid, 1.0, t_offset=t_start)
+        self._last_rt_cmd = t_start
 
     def _register_waveform(self, waveform):
         for index, data in enumerate(self._waveforms):
@@ -742,6 +758,7 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
                 self.seq.shaped_pulse(ramp_id, ramp_gain, t_offset=t_start)
             else:
                 self.seq.shaped_pulse(ramp_id, ramp_gain, block_id, offset, t_offset=t_start)
+            self._last_rt_cmd = t_start
 
         self._copy_tail_waveform(t_end)
         self._set_next_interpolation()

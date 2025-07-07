@@ -814,6 +814,9 @@ class UploadAggregator:
 
         compensation_ns = job.upload_info.dc_compensation_duration_ns
         if job.neutralize and compensation_ns > 0 and channel_info.dc_compensation:
+            if compensation_ns < 4:
+                # minimum pulse duration
+                compensation_ns = 4
             compensation_voltage_mV = -channel_info.integral / compensation_ns * 1e9 / channel_info.attenuation
             job.upload_info.dc_compensation_voltages[channel_name] = compensation_voltage_mV
             seq.add_comment(f'DC compensation: {compensation_voltage_mV:6.2f} mV {compensation_ns} ns')
