@@ -15,7 +15,7 @@ def test():
 
     # Pass LO frequency parameter to pulse-lib.
     # Pulse-lib calculates IQ frequency: f_IQ = f_MW - f_LO
-    pulse.set_iq_lo('IQ1', station.mw_source.frequency)
+    pulse.set_iq_lo('IQ1', station.sig_gen1.frequency)
 
     # Define q1 on IQ output IQ1 with qubit frequency 12.412e9
     pulse.define_qubit_channel('q1', 'IQ1', 12.412e9)
@@ -43,17 +43,18 @@ def test():
     m_param = sequence.get_measurement_param()
 
     ds = Scan(
-            sweep(station.mw_source.frequency, 2.0e9, 3.0e9, n_points=11, delay=0.01),
+            sweep(station.sig_gen1.frequency, 2.0e9, 3.0e9, n_points=11, delay=0.01),
             sequence,
             m_param,
+            name="freq. sweep",
             ).run()
 
     ds = Scan(
-            sweep(station.mw_source.frequency, np.arange(2.09, 3.0e9, 0.1e9), delay=0.01),
+            sweep(station.sig_gen1.frequency, np.arange(2.09, 3.0e9, 0.1e9), delay=0.01),
             sequence,
             m_param,
+            name="freq. sweep",
             ).run()
-
 
     context.plot_awgs(sequence)
 

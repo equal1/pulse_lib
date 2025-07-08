@@ -94,6 +94,7 @@ if __name__ == '__main__':
     from pulse_lib.qblox.pulsar_sequencers import VoltageSequenceBuilder
     QbloxConfig.sine_interpolation_step = 40
     VoltageSequenceBuilder.verbose = False
+    QbloxConfig.double_path_encoding = True
 
     test1()
     test2()

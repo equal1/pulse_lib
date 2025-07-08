@@ -1,14 +1,17 @@
 
 from pulse_lib.tests.configurations.test_configuration import context
 
-#%%
+# %%
 import pulse_lib.segments.utility.looping as lp
 
-def test_shuttle_ch(n_pulses = 1000):
+upload_seq = False
+
+
+def test_shuttle_ch(n_pulses=1000):
     pulse = context.init_pulselib(n_gates=7, n_qubits=4, n_sensors=2, n_markers=1,
                                   virtual_gates=True)
 
-    t_wait = lp.linspace(1,20,20, axis=0, name='t_wait')
+    t_wait = lp.linspace(1, 20, 20, axis=0, name='t_wait')
 
     s = pulse.mk_segment()
 
@@ -19,13 +22,19 @@ def test_shuttle_ch(n_pulses = 1000):
         s.vP1.wait(t_wait)
         s.vP1.reset_time()
 
-    return pulse.mk_sequence([s])
+    seq = pulse.mk_sequence([s])
+    if upload_seq:
+        for t in t_wait:
+            seq.t_wait(t)
+            seq.upload()
+    return seq
 
-def test_shuttle(n_pulses = 1000):
+
+def test_shuttle(n_pulses=1000):
     pulse = context.init_pulselib(n_gates=7, n_qubits=4, n_sensors=2, n_markers=1,
                                   virtual_gates=True)
 
-    t_wait = lp.linspace(1,20,20, axis=0, name='t_wait')
+    t_wait = lp.linspace(1, 20, 20, axis=0, name='t_wait')
 
     s = pulse.mk_segment()
 
@@ -34,19 +43,23 @@ def test_shuttle(n_pulses = 1000):
     for _ in range(n_pulses):
         s.vP1.add_ramp_ss(0, 100, -80, 80)
         s.vP1.wait(t_wait)
-        s.reset_time()
+        s.reset_time()  # reset on segment instead of channel
 
-    return pulse.mk_sequence([s])
+    seq = pulse.mk_sequence([s])
+    if upload_seq:
+        for t in t_wait:
+            seq.t_wait(t)
+            seq.upload()
+    return seq
 
 
 def test_shuttle_n(n_pulses=200):
     pulse = context.init_pulselib(n_gates=7, n_qubits=4, n_sensors=2, n_markers=1,
                                   virtual_gates=True)
 
-#    n_pulses = lp.linspace(1, n_pulses, 3, axis=1, name='n_pulses')
-#    t_wait = lp.linspace(1,20,2, axis=0, name='t_wait')
+    # Roughly same total number of pulses (1100 vs 1000), but in 10 shorter sequences.
     n_pulses = lp.linspace(20, n_pulses, 10, axis=1, name='n_pulses')
-    t_wait = lp.linspace(1,20,20, axis=0, name='t_wait')
+    t_wait = lp.linspace(1, 20, 20, axis=0, name='t_wait')
 
     s = pulse.mk_segment()
 
@@ -55,21 +68,29 @@ def test_shuttle_n(n_pulses=200):
     s.update_dim(n_pulses)
     s.wait(0*t_wait)
 
-    for n,nr in enumerate(n_pulses):
+    for n, nr in enumerate(n_pulses):
         seg = s[n]
         for _ in range(int(nr)):
             seg.vP1.add_ramp_ss(0, 100, -80, 80)
             seg.vP1.wait(t_wait)
-            seg.reset_time()
+            seg.reset_time()  # reset on segment instead of channel
 
-    return pulse.mk_sequence([s])
+    seq = pulse.mk_sequence([s])
+    if upload_seq:
+        for t in t_wait:
+            for i in n_pulses:
+                seq.t_wait(t)
+                seq.n_pulses(i)
+                seq.upload()
+    return seq
+
 
 def test_shuttle_n_ch(n_pulses=200):
     pulse = context.init_pulselib(n_gates=7, n_qubits=4, n_sensors=2, n_markers=1,
                                   virtual_gates=True)
 
     n_pulses = lp.linspace(20, n_pulses, 10, axis=1, name='n_pulses')
-    t_wait = lp.linspace(1,20,20, axis=0, name='t_wait')
+    t_wait = lp.linspace(1, 20, 20, axis=0, name='t_wait')
 
     s = pulse.mk_segment()
 
@@ -78,22 +99,29 @@ def test_shuttle_n_ch(n_pulses=200):
     s.update_dim(n_pulses)
     s.wait(0*t_wait)
 
-    for n,nr in enumerate(n_pulses):
+    for n, nr in enumerate(n_pulses):
         seg = s[n]
         for _ in range(int(nr)):
             seg.vP1.add_ramp_ss(0, 100, -80, 80)
             seg.vP1.wait(t_wait)
             seg.vP1.reset_time()
 
-    return pulse.mk_sequence([s])
+    seq = pulse.mk_sequence([s])
+    if upload_seq:
+        for t in t_wait:
+            for i in n_pulses:
+                seq.t_wait(t)
+                seq.n_pulses(i)
+                seq.upload()
+    return seq
 
-#%%
+
+# %%
+
 if __name__ == '__main__':
     import time
     context.init_coretools()
 
-#    seq = test_shuttle_n(n_pulses=3)
-#    oops()
     for _ in range(5):
         start = time.perf_counter()
         seq = test_shuttle_ch()
@@ -126,7 +154,171 @@ if __name__ == '__main__':
         seq.close()
         time.sleep(duration/2)
 
-#%%
+# %%
+'''
+Compile only!
+
+V1.7.33 Python 3.10:
+duration 0:   779 ms
+duration 0:   580 ms
+duration 0:   569 ms
+duration 0:   550 ms
+duration 0:   527 ms
+duration 1:  2028 ms
+duration 1:  1754 ms
+duration 1:  2100 ms
+duration 1:  1596 ms
+duration 1:  2040 ms
+duration 2:  2593 ms
+duration 2:  2523 ms
+duration 2:  2529 ms
+duration 2:  1995 ms
+duration 2:  2513 ms
+duration 3:  1475 ms
+duration 3:  1462 ms
+duration 3:  1455 ms
+duration 3:  1421 ms
+duration 3:  1701 ms
+
+V1.7.33 Python 3.12:
+    (Indeed, 0 is slower. Rest is faster.)
+duration 0:   957 ms
+duration 0:   845 ms
+duration 0:   866 ms
+duration 0:   743 ms
+duration 0:   773 ms
+duration 1:  1580 ms
+duration 1:  1555 ms
+duration 1:  1466 ms
+duration 1:  1763 ms
+duration 1:  1533 ms
+duration 2:  1963 ms
+duration 2:  2128 ms
+duration 2:  2032 ms
+duration 2:  2216 ms
+duration 2:  2018 ms
+duration 3:  1247 ms
+duration 3:  1246 ms
+duration 3:  1338 ms
+duration 3:  1341 ms
+duration 3:  1294 ms
+
+V1.7.54:
+duration 0:   843 ms
+duration 0:   719 ms
+duration 0:   811 ms
+duration 0:   817 ms
+duration 0:   839 ms
+duration 1:  1391 ms
+duration 1:  1661 ms
+duration 1:  1725 ms
+duration 1:  1521 ms
+duration 1:  1635 ms
+duration 2:  2030 ms
+duration 2:  1792 ms
+duration 2:  1827 ms
+duration 2:  1882 ms
+duration 2:  1850 ms
+duration 3:   826 ms
+duration 3:  1064 ms
+duration 3:   809 ms
+duration 3:   962 ms
+duration 3:   944 ms
+
+V1.7.55: (should be same as 1.7.54)
+duration 0:   986 ms
+duration 0:   812 ms
+duration 0:   876 ms
+duration 0:   852 ms
+duration 0:   723 ms
+duration 1:  1604 ms
+duration 1:  2038 ms
+duration 1:  1562 ms
+duration 1:  1945 ms
+duration 1:  1906 ms
+duration 2:  2403 ms
+duration 2:  1996 ms
+duration 2:  2181 ms
+duration 2:  2295 ms
+duration 2:  2165 ms
+duration 3:  1004 ms
+duration 3:   835 ms
+duration 3:  1002 ms
+duration 3:   959 ms
+duration 3:  1093 ms
+
+=================
+With Qblox upload:
+
+V1.7.33 Python 3.10:
+duration 0: 17310 ms
+duration 0: 15030 ms
+duration 0: 14845 ms
+duration 0: 15748 ms
+duration 0: 15508 ms
+duration 1: 15577 ms
+duration 1: 15865 ms
+duration 1: 17307 ms
+duration 1: 16780 ms
+duration 1: 20527 ms
+duration 2: 31171 ms
+duration 2: 29705 ms
+duration 2: 30363 ms
+duration 2: 32350 ms
+duration 2: 30689 ms
+duration 3: 27934 ms
+duration 3: 27757 ms
+duration 3: 28559 ms
+duration 3: 28971 ms
+duration 3: 35491 ms
+
+V1.7.33 Python 3.12:
+duration 0: 11530 ms
+duration 0: 14099 ms
+duration 0: 11990 ms
+duration 0: 11539 ms
+duration 0: 12998 ms
+duration 1: 12507 ms
+duration 1: 13040 ms
+duration 1: 14156 ms
+duration 1: 14752 ms
+duration 1: 13901 ms
+duration 2: 24789 ms
+duration 2: 26536 ms
+duration 2: 23789 ms
+duration 2: 27625 ms
+duration 2: 26939 ms
+duration 3: 23312 ms
+duration 3: 24351 ms
+duration 3: 24533 ms
+duration 3: 23496 ms
+duration 3: 24580 ms
+
+V1.7.54: (same 1.7.55)
+    (Don't know why 0 and 1 got slower...)
+duration 0: 20379 ms
+duration 0: 17836 ms
+duration 0: 20023 ms
+duration 0: 17902 ms
+duration 0: 19496 ms
+duration 1: 21848 ms
+duration 1: 19412 ms
+duration 1: 18722 ms
+duration 1: 19380 ms
+duration 1: 22607 ms
+duration 2: 23506 ms
+duration 2: 21419 ms
+duration 2: 21939 ms
+duration 2: 22648 ms
+duration 2: 22317 ms
+duration 3: 19819 ms
+duration 3: 20673 ms
+duration 3: 19838 ms
+duration 3: 22730 ms
+duration 3: 22625 ms
+
+'''
+
 '''
 V1.6.31:
 duration 1:  4897 ms

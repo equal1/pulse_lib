@@ -2,14 +2,16 @@
 from pulse_lib.tests.configurations.test_configuration import context
 import pulse_lib.segments.utility.looping as lp
 
-#%%
+
+# %%
+
 def test_slow(n_gates=10, n_seq=50):
     pulse = context.init_pulselib(n_gates=7, n_qubits=4, n_sensors=2, n_markers=1,
                                   virtual_gates=True)
 
     f_q1 = 2.450e9
-    n_seq = lp.arange(1,n_seq+1,1, axis=0, name='i_sequence')
-    n_rep = lp.arange(1,2,1, axis=1, name='n_repeat')
+    n_seq = lp.arange(1, n_seq+1, 1, axis=0, name='i_sequence')
+    n_rep = lp.arange(1, 2, 1, axis=1, name='n_repeat')
 
     s = pulse.mk_segment()
 
@@ -18,8 +20,8 @@ def test_slow(n_gates=10, n_seq=50):
     s.update_dim(n_seq)
     s.update_dim(n_rep)
 
-    for n,nr in enumerate(n_rep):
-        for m,np in enumerate(n_seq):
+    for n, nr in enumerate(n_rep):
+        for m, np in enumerate(n_seq):
             for _ in range(n_gates):
                 seg = s[n][m]
 #                s[n][m].vP1.add_ramp_ss(0, 100, -80, 80)
@@ -41,8 +43,8 @@ def test_pretty_fast(n_gates=10, n_seq=50):
                                   virtual_gates=True)
 
     f_q1 = 2.450e9
-    n_seq = lp.arange(1,n_seq+1,1, axis=0, name='i_sequence')
-    n_rep = lp.arange(1,2,1, axis=1, name='n_repeat')
+    n_seq = lp.arange(1, n_seq+1, 1, axis=0, name='i_sequence')
+    n_rep = lp.arange(1, 2, 1, axis=1, name='n_repeat')
 
     s = pulse.mk_segment()
 
@@ -51,7 +53,7 @@ def test_pretty_fast(n_gates=10, n_seq=50):
     s.update_dim(n_seq)
     s.update_dim(n_rep)
 
-    for m,np in enumerate(n_seq):
+    for m, np in enumerate(n_seq):
         seg = s[0][m]
         for _ in range(n_gates):
             seg.vP1.add_ramp_ss(0, 100, -80, 80)
@@ -60,16 +62,16 @@ def test_pretty_fast(n_gates=10, n_seq=50):
             seg.q1.add_MW_pulse(0, 10, 50.0, f_q1)
             seg.reset_time()
 
-
     return pulse.mk_sequence([s])
+
 
 def test_fast(n_gates=10, n_seq=50):
     pulse = context.init_pulselib(n_gates=7, n_qubits=4, n_sensors=2, n_markers=1,
                                   virtual_gates=True)
 
     f_q1 = 2.450e9
-    n_seq = lp.arange(1,n_seq+1,1, axis=0, name='i_sequence')
-    n_rep = lp.arange(1,2,1, axis=1, name='n_repeat')
+    n_seq = lp.arange(1, n_seq+1, 1, axis=0, name='i_sequence')
+    n_rep = lp.arange(1, 2, 1, axis=1, name='n_repeat')
 
     s = pulse.mk_segment()
 
@@ -77,7 +79,7 @@ def test_fast(n_gates=10, n_seq=50):
 
     s.update_dim(n_seq)
 
-    for m,np in enumerate(n_seq):
+    for m, np in enumerate(n_seq):
         seg = s[m]
         for _ in range(n_gates):
             seg.vP1.add_ramp_ss(0, 100, -80, 80)
@@ -90,7 +92,9 @@ def test_fast(n_gates=10, n_seq=50):
 
     return pulse.mk_sequence([s])
 
-#%%
+
+# %%
+
 if __name__ == '__main__':
     import time
     for _ in range(3):
@@ -146,4 +150,19 @@ duration 3:   346 ms
 duration 3:   430 ms
 duration 3:   384 ms
 duration 3:   477 ms
+
+v1.7.54:
+duration 1:   418 ms
+duration 1:   434 ms
+duration 1:   406 ms
+duration 2:   163 ms
+duration 2:   148 ms
+duration 2:   157 ms
+duration 2:   147 ms
+duration 2:   158 ms
+duration 3:   152 ms
+duration 3:   165 ms
+duration 3:   162 ms
+duration 3:   157 ms
+duration 3:   173 ms
 '''

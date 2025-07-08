@@ -2,6 +2,7 @@
 setup: Test
 project: Pulselib
 sample: yaml_configuration
+scope: ~
 
 local_database:
     user: sdesnoo

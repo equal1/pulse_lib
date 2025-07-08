@@ -78,9 +78,9 @@ class Context:
                     print(f'  Add {module.name}: {module.module_type}{rf}')
                     station.add_component(module, module.name, update_snapshot=False)
                     # try:
-                    #     # module.config('trace', True)
-                    #     module.config('render_repetitions', True)
-                    # except:
+                    #     module.config('trace', True)
+                    #     # module.config('render_repetitions', True)
+                    # except Exception:
                     #     pass
                     if module.is_qcm_type:
                         awgs.append(module)
@@ -164,7 +164,7 @@ class Context:
         if backend == 'Qblox':
             from pulse_lib.qblox.pulsar_uploader import UploadAggregator
             from pulse_lib.qblox import QbloxConfig
-            UploadAggregator.verbose = True
+            UploadAggregator.verbose = False
             QbloxConfig.low_pass_filter_enabled = True
 
         pulse = pulselib(backend=backend)

@@ -104,7 +104,7 @@ def test1(hres=False):
                              phase=0.5*np.pi, start_pos=a, stop_pos=b, mod_period=period)
     s.wait(20)
 
-    s.plot()
+    # s.plot()
 
     sequence = pulse.mk_sequence([s])
     sequence.n_rep = None

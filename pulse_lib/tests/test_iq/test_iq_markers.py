@@ -3,18 +3,18 @@ from pulse_lib.tests.configurations.test_configuration import context
 import pulse_lib.segments.utility.looping as lp
 
 
-#%%
+# %%
 def test1():
     pulse = context.init_pulselib(n_qubits=4, n_sensors=1)
     # f LO: 2.400 and 2.800 GHz
     # qubit freqs: 2.450, 2.550, 2.650, 2.750 GHz
-    f_q1 = 2.450e9 # IQ = +50 MHz
-    f_q2 = 2.550e9 # IQ = +150 MHz
-    f_q3 = 2.650e9 # IQ = -150 MHz
-    f_q4 = 2.750e9 # IQ = -50 MHz
+    f_q1 = 2.450e9  # IQ = +50 MHz
+    f_q2 = 2.550e9  # IQ = +150 MHz
+    f_q3 = 2.650e9  # IQ = -150 MHz
+    f_q4 = 2.750e9  # IQ = -50 MHz
 
-    # marker setup + hold = 120 ns. Minimum off time: 20 ns.
-    t_wait = lp.linspace(120, 160, 9, name='t_wait', unit='ns', axis=0)
+    # marker setup + hold = 60 ns. Minimum off time: 20 ns.
+    t_wait = lp.linspace(60, 100, 9, name='t_wait', unit='ns', axis=0)
     s = pulse.mk_segment()
 
     s.q1.add_MW_pulse(0, 100, 200.0, f_q1)
@@ -53,11 +53,13 @@ def test2():
 #    iq_marker.delay = -10
     # f LO: 2.400 and 2.800 GHz
     # qubit freqs: 2.450, 2.550, 2.650, 2.750 GHz
-    f_q1 = 2.450e9 # IQ = +50 MHz
+    f_q1 = 2.450e9  # IQ = +50 MHz
 
     # marker setup + hold = 120 ns.
     t_wait = lp.linspace(140, 150, 11, name='t_wait', unit='ns', axis=0)
     s = pulse.mk_segment()
+
+    s.wait(4, reset_time=True)
 
     for _ in range(10):
         s.q1.add_MW_pulse(0, 100, 200.0, f_q1)
@@ -76,7 +78,7 @@ def test2():
     return context.run('iq-markers-2', sequence, m_param)
 
 
-#%%
+# %%
 
 if __name__ == '__main__':
     ds = test1()

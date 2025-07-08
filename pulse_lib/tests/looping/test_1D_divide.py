@@ -17,6 +17,7 @@ def test():
     s.P1.add_block(0, t_pulse, amplitude)
     s.wait(100, reset_time=True)
     s.SD1.acquire(0, 100)
+    s.wait(100)
 
     context.plot_segments([s])
 
@@ -24,7 +25,7 @@ def test():
     m_param = sequence.get_measurement_param()
     for t in sequence.t_pulse.values:
         sequence.t_pulse(t)
-        context.plot_awgs(sequence, ylim=(-0.100,0.100))
+        context.plot_awgs(sequence, ylim=(-0.100, 0.100))
     ds = context.run('test_1D_divide', sequence, m_param)
 
     return ds

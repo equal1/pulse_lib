@@ -1,7 +1,7 @@
 
 from pulse_lib.tests.configurations.test_configuration import context
 
-#%%
+# %%
 from numpy import pi
 
 
@@ -56,7 +56,7 @@ def test2():
     return None
 
 
-#%%
+# %%
 
 if __name__ == '__main__':
     ds1 = test1()

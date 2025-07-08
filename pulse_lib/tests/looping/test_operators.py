@@ -37,3 +37,11 @@ check_loop(loop1, loop2)
 
 loop2 = np.float64(2.0) / loop1
 check_loop(loop1, loop2)
+
+loop2 = loop2 * loop1
+check_loop(loop1, loop2)
+
+loop2 = np.maximum(loop1, loop2)
+check_loop(loop1, loop2)
+
+np.where(loop1, loop1, loop2)

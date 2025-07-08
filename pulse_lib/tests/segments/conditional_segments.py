@@ -18,29 +18,37 @@ def get_feedback_latency(backend):
         feedback_latency = 500
     return feedback_latency
 
+
 def test1():
-    pulse = context.init_pulselib(n_gates=2, n_qubits=2, n_sensors=2, drive_with_plungers=drive_with_plungers)
+    pulse = context.init_pulselib(n_gates=2, n_qubits=1, n_sensors=1, drive_with_plungers=drive_with_plungers)
     f_q1 = pulse.qubit_channels['q1'].resonance_frequency
+    M1 = pulse.marker_channels["M_IQ1"]
+    M1.setup_ns = 100
 
     feedback_latency = get_feedback_latency(pulse._backend)
     if feedback_latency is None:
         return
 
-    t_measure = 500
+    t_measure = 100
 
     s = pulse.mk_segment('seg1')
     s1 = s
 
-    s.P1.add_block(10, 20, -10)
+    s.P1.add_ramp_ss(0, 100, 0, 200)
+    s.P1.add_block(100, 200, 200)
+    s.P1.add_ramp_ss(200, 300, 200, 100)
+    s.P1.add_block(200, -1, 100)
     s.wait(30, reset_time=True)
     s.SD1.acquire(0, t_measure, 'm1', threshold=0.0015, zero_on_high=True, wait=True)
-    s.wait(feedback_latency, reset_time=True)
+    s.wait(feedback_latency-100, reset_time=True)
+    s.P1.add_block(0, -1, -100)
+    s.P1.add_ramp_ss(0, 80, 100, 0)
 
     s_true = pulse.mk_segment()
     s_false = pulse.mk_segment()
 
-    s_false.q1.add_MW_pulse(10, 20, 80.0, f_q1)
-    s_false.wait(10, reset_time=True)
+    s_true.q1.add_MW_pulse(10, 25, 150.0, f_q1)
+    s_true.wait(40, reset_time=True)
 
     cond_seg1 = conditional_segment(MeasurementRef('m1'), [s_false, s_true], name='cond')
 
@@ -56,6 +64,8 @@ def test1():
 def test2():
     pulse = context.init_pulselib(n_gates=2, n_qubits=2, n_sensors=2)
     f_q1 = pulse.qubit_channels['q1'].resonance_frequency
+    M1 = pulse.marker_channels["M_IQ1"]
+    M1.setup_ns = 100
 
     feedback_latency = get_feedback_latency(pulse._backend)
     if feedback_latency is None:
@@ -94,6 +104,8 @@ def test3():
     pulse = context.init_pulselib(n_gates=2, n_qubits=2, n_sensors=2)
     f_q1 = pulse.qubit_channels['q1'].resonance_frequency
     f_q2 = pulse.qubit_channels['q2'].resonance_frequency
+    M1 = pulse.marker_channels["M_IQ1"]
+    M1.setup_ns = 100
 
     feedback_latency = get_feedback_latency(pulse._backend)
     if feedback_latency is None:
@@ -114,15 +126,15 @@ def test3():
     s_true = pulse.mk_segment()
     s_false = pulse.mk_segment()
 
-    s_false.q1.add_MW_pulse(10, 20, 80.0, f_q1)
-    s_false.wait(40, reset_time=True)
+    s_true.q1.add_MW_pulse(10, 20, 800.0, f_q1)
+    s_true.wait(40, reset_time=True)
 
     cond_seg1 = conditional_segment(MeasurementRef('m0'), [s_false, s_true], name='cond')
 
     s_true = pulse.mk_segment()
     s_false = pulse.mk_segment()
 
-    s_false.q2.add_MW_pulse(10, 20, 80.0, f_q2)
+    s_false.q2.add_MW_pulse(10, 20, 800.0, f_q2)
     s_false.wait(20, reset_time=True)
 
     cond_seg2 = conditional_segment(MeasurementRef('m1'), [s_false, s_true], name='cond')
@@ -144,6 +156,13 @@ if __name__ == '__main__':
     context.init_coretools()
     ds1 = test1()
     ds2 = test2()
-    print(ds2.m1_1(), ds2.m1_2(), ds2.m1_3(), ds2.m1_4())
+    # print(ds2.m1_1(), ds2.m1_2(), ds2.m1_3(), ds2.m1_4())
 
     ds3 = test3()
+
+    cluster = context.station.Qblox
+    from q1simulator import Q1Plotter
+
+    plotter = Q1Plotter(cluster)
+    plotter.plot()
+
