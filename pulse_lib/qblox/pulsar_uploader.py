@@ -723,9 +723,9 @@ class UploadAggregator:
             if seq_delay is not None:
                 t_before_pulse = marker_channel.setup_ns - marker_channel.delay + seq_delay
                 t_after_pulse = marker_channel.hold_ns + marker_channel.delay - seq_delay
-                if t_before_pulse <= 0:
+                if t_before_pulse < 0:
                     raise Exception(f"Marker {marker_name} on {seq_name} starts after pulse.")
-                if t_after_pulse <= 0:
+                if t_after_pulse < 0:
                     raise Exception(f"Marker {marker_name} on {seq_name} stops before end of pulse.")
 
             markers += self.get_markers(job, marker_channel)

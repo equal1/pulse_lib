@@ -31,9 +31,11 @@ def iround(value):
 
 class PulsarConfig:
     if Version(q1pulse_version) >= Version("0.17.3"):
+        # v0.17.3 supports 1 ns alignment
+        # NOTE: alignment can be overruled in user code if needed.
         ALIGNMENT = 1
     else:
-        ALIGNMENT = 1 # @@@@@ 4  # pulses must be aligned on 4 ns boundaries
+        ALIGNMENT = 4  # pulses must be aligned on 4 ns boundaries
 
     # Note 8000 samples memory, max 256 waves.
     EMIT_LENGTH1 = 100
@@ -131,12 +133,19 @@ class SequenceBuilderBase:
 
     def _insert_markers(self, t):
         while self.t_next_marker is not None and t >= self.t_next_marker:
-            self._add_next_marker()
+            self._add_next_marker(t)
 
-    def _add_next_marker(self):
-        self.t_end = self.t_next_marker
+    def _add_next_marker(self, t):
         marker = self.markers[self.imarker]
-        self._set_markers(marker.time, marker.enabled_markers)
+        t_marker = marker.time
+        if t - t_marker < 4:
+            # move to next update
+            t_marker = t
+        elif t_marker - self.t_end < 4:
+            # move to previous update
+            t_marker = self.t_end
+        self._set_markers(t_marker, marker.enabled_markers)
+        self.t_end = t_marker
         self._set_next_marker()
 
     def _set_markers(self, t, value):
@@ -270,6 +279,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         is_long = (t_end - max(t_start, self._t_wave_end)) > 40 # @@@ add to PulsarConfig
 
         # @@@ if constant emit with offset from start waveform.
+        #     This allows to create gaps of any duration between waveforms.
 
         if is_long:
             line_start = PulsarConfig.ceil(max(t_start, self._t_wave_end))
@@ -778,6 +788,7 @@ class IQSequenceBuilder(SequenceBuilderBase):
         self._ilatch_event = 0
         self._latch_events = []
         self._current_gain = None
+        self._pending_phase_shift: float = 0.0
 
         if mixer_gain is not None:
             self.seq.mixer_gain_ratio = mixer_gain[1]/mixer_gain[0]
@@ -796,6 +807,8 @@ class IQSequenceBuilder(SequenceBuilderBase):
             return
         t_pulse = PulsarConfig.floor(t_start)
         self._update_time_and_markers(t_pulse, t_end-t_pulse)
+        if self._pending_phase_shift != 0.0:
+            self._insert_phase_shift(t_pulse)
         self.add_comment(f'MW pulse {waveform.frequency/1e6:6.2f} MHz {waveform.duration} ns')
         waveform = copy(waveform)
         waveform.frequency -= self.nco_frequency
@@ -912,19 +925,22 @@ class IQSequenceBuilder(SequenceBuilderBase):
         Arguments:
             phase (float): phase in rad.
         '''
-        # The phase shift can be before or after MW pulse.
-        # First try to align towards lower t
-        t_phase = PulsarConfig.floor(t)
-        if t_phase < self.t_end:
-            # Align towards higher t.
-            t_phase = PulsarConfig.ceil(t)
-        self._update_time_and_markers(t_phase, 0.0)
+        if t < self.t_end:
+            raise Exception(f"Cannot insert phase shift in active pulse, t={t}, phase={phase:.3f} rad")
+        self._pending_phase_shift += phase
+
+    def _insert_phase_shift(self, t):
+
+        phase = self._pending_phase_shift
+        # clear pending phase shift
+        self._pending_phase_shift = 0.0
+
         # normalize phase to -1.0 .. + 1.0 for Q1Pulse sequencer
         norm_phase = (phase/np.pi + 1) % 2 - 1
         if -1e-6 < norm_phase < 1e-6:
             # ignore very small phase shifts
             return
-        self.seq.shift_phase(norm_phase, t_offset=t_phase)
+        self.seq.shift_phase(norm_phase, t_offset=t)
 
     def chirp(self, t_start, t_end, amplitude, start_frequency, stop_frequency):
         # set NCO frequency if valid. Otherwise set 0.0 to enable modulation
@@ -941,6 +957,8 @@ class IQSequenceBuilder(SequenceBuilderBase):
         t_start = PulsarConfig.align(t_start)
         t_end = PulsarConfig.align(t_end)
         self._update_time_and_markers(t_start, 0.0)
+        if self._pending_phase_shift != 0.0:
+            self._insert_phase_shift()
         self.seq.chirp(t_end-t_start, amplitude,
                        start_frequency, stop_frequency,
                        t_offset=t_start)
@@ -1014,7 +1032,7 @@ class IQSequenceBuilder(SequenceBuilderBase):
                         self._add_next_latch_event()
                         loop = True
                     elif self.t_next_marker is not None and t >= self.t_next_marker:
-                        self._add_next_marker()
+                        self._add_next_marker(t)
                         loop = True
         else:
             super()._insert_markers(t)
