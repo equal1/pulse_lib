@@ -11,6 +11,7 @@ import numpy as np
 
 from packaging.version import Version
 from q1pulse import __version__ as q1pulse_version
+from qblox_instruments import __version__ as qblox_instruments_version
 
 if Version(q1pulse_version) < Version("0.12.0"):
     raise Exception("Upgrade q1pulse to version 0.12+")
@@ -30,7 +31,8 @@ def iround(value):
 
 
 class PulsarConfig:
-    if Version(q1pulse_version) >= Version("0.17.3"):
+    if (Version(q1pulse_version) >= Version("0.17.3")
+            and Version(qblox_instruments_version) >= Version("0.16.0")):
         # v0.17.3 supports 1 ns alignment
         # NOTE: alignment can be overruled in user code if needed.
         ALIGNMENT = 1
