@@ -253,7 +253,7 @@ class MeasurementParameter(MultiParameter):
 
 
 class MeasurementConverter:
-    ALLOWED_RELATIVE_THRESHOLD_DEVIATION = 0.01
+    ALLOWED_RELATIVE_THRESHOLD_DEVIATION = 0.005
     '''
     Allowed maximum deviation resulting is a difference between HW and SW thresholded data.
     Deviation is relative with respect to range of measured values.
@@ -262,16 +262,28 @@ class MeasurementConverter:
     This warning indicates that the raw data has a small range with respect to the
     resolution of the hardware. It could also be due to a problem in the HW or SW.
 
-    Note: On Qblox the error in the *rotated* data before thresholding is ~IQ_signal_level/2**11.
-    So the range of the signal should be at least IQ_signal_level / 20.
+    Note: On Qblox the error in the *rotated* data before thresholding is ~1/2**11 = ~5E-4.
+    This error is caused by the 12 bit precision of the rotation matrix.
+    However, the absolute I value after rotation can be much smaller than the amplitude of IQ.
+    The ALLOWED_RELATIVE_THRESHOLD_DEVIATION could generate warnings when the absolution I value
+    is < 1/10 of the amplitude and there is a value close to the threshold.
+
+    The warning could also be due to a problem in the HW or SW!
     '''
-    ALLOWED_FRACTION_THRESHOLD_DIFFERENCES = 0.002
+    ALLOWED_FRACTION_THRESHOLD_DIFFERENCES = 0.01
     '''
     Allowed fraction of measurements that has a difference between HW and SW thresholded data.
     A warning is raised when more measurements have a different thresholded value.
     This warning indicates that there is too much data very close to the threshold.
     This warning indicates that the raw data has a small range with respect to the
-    resolution of the hardware. It could also be due to a problem in the HW or SW.
+    resolution of the hardware.
+    Assuming a uniform distribution of values in 5% of the amplitude, then with a relative error
+    of 5E-4 on the amplitude results in 1% of the values getting the wrong result due to the rounding error.
+    Normally, the values do not have a uniform distribution. Close to the threshold the density should be low.
+    A range of 5% of the amplitude is also pretty small. The peaks of the gaussian distributions
+    should be close, e.g. at 100 and 105 mV.
+
+    The warning could also be due to a problem in the HW or SW!
     '''
 
     def __init__(self, description, n_rep, sample_rate):
@@ -410,20 +422,17 @@ class MeasurementConverter:
             value_differences = values[different] - m.threshold
             rel_differences = value_differences / (max_value - min_value)
             msg = (f"{n_different} differences between hardware and software thresholded results for '{m.name}'. "
-                   f"Raw value range: [{min_value:.6f}, {max_value:.6f}] mV, max difference: "
+                   f"Sensor value range: [{min_value:.6f}, {max_value:.6f}] mV, max difference: "
                    f"{np.max(np.abs(value_differences)):.6f} mV")
             if (np.max(np.abs(rel_differences)) > MeasurementConverter.ALLOWED_RELATIVE_THRESHOLD_DEVIATION
-                    or n_different > max(1, len(values)*MeasurementConverter.ALLOWED_FRACTION_THRESHOLD_DIFFERENCES)):
+                    or n_different > max(2, len(values)*MeasurementConverter.ALLOWED_FRACTION_THRESHOLD_DIFFERENCES)):
                 logger.warning(msg)
-                # level='WARNING'
             else:
                 logger.info(msg)
-                # level='INFO'
-            logger.info(f"indices: {different}, values-threshold: {value_differences} mV")
-            # print(level, msg)
-            # print(f"{min(value_differences):.6f}, {max(value_differences):.6f}, "
-            #       f"{np.max(np.abs(rel_differences)):.2%}, {max_value-min_value:.6f}")
+            logger.debug(f"indices: {different}, values-threshold: {value_differences} mV")
 
+            # Use hw_thresholded values to represent HW behavior in result.
+            result = hw_thresholded
         return result
 
     def _set_states(self):
