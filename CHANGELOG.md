@@ -1,6 +1,15 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.55] - 2025-07-16
+
+- Generate Qblox sequence with 1 ns sequencer resolution (reduces code size up to 20%! and number of waves up to 50%!)
+  The 1 ns resolution is only used with Q1Pulse >= 0.17.3 and qblox-instruments >= 0.16.0.
+- Added `QbloxConfig.double_path_encoding` to use both paths of QCM sequencers to generate
+  more compact Q1ASM for unmodulated pulses, but with output limited to only 0.5 of maximum output.
+- Note: Support for Q1Pulse < 0.12.0 and qblox-instruments < 0.12.0 has been removed.
+- Increased limits for warnings on HW/SW threshold differences for Qblox, and use HW threshold values instead of SW values.
+
 ## \[1.7.54] - 2025-06-30
 
 - Added `QbloxConfig.sine_interpolation_step` for low frequency (<1 MHz), long duration (>8 us)  shuttling.
