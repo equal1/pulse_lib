@@ -15,6 +15,8 @@ from qblox_instruments import __version__ as qblox_instruments_version
 
 if Version(q1pulse_version) < Version("0.12.0"):
     raise Exception("Upgrade q1pulse to version 0.12+")
+if Version(qblox_instruments_version) < Version("0.12.0"):
+    raise Exception("Upgrade qblox-instruments to version 0.12+")
 
 from q1pulse.lang.conditions import CounterFlags
 
@@ -542,6 +544,8 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
             new[:remainder] = waveform[n:n+remainder]
             self._waveform = new
             self._v_start = None
+            # It is not yet the last command, but there shall not be a command before this one.
+            self._last_rt_cmd = self._t_wave_start
         else:
             self._rendering = False
 

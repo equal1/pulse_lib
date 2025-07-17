@@ -9,12 +9,8 @@ from pathlib import Path
 from uuid import UUID
 
 import numpy as np
-from packaging.version import Version
 
-from q1pulse import (
-        Q1Instrument,
-        __version__ as q1pulse_version)
-from qblox_instruments import __version__ as qblox_version
+from q1pulse import Q1Instrument
 
 from pulse_lib.segments.conditional_segment import conditional_segment
 from pulse_lib.segments.data_classes.data_IQ import IQ_data_single, Chirp
@@ -120,11 +116,7 @@ class PulsarUploader:
 
         for name, marker_ch in self.marker_channels.items():
             module = q1.modules[marker_ch.module_name]
-            if Version(qblox_version) >= Version('0.11'):
-                module.set_marker_invert(marker_ch.channel_number, marker_ch.invert)
-            else:
-                if marker_ch.invert:
-                    raise Exception('Marker inversion requires qblox_instrument 0.11+')
+            module.set_marker_invert(marker_ch.channel_number, marker_ch.invert)
 
     @property
     def supports_conditionals(self):
@@ -297,8 +289,9 @@ class PulsarUploader:
 
         # store program info.
         if QbloxConfig.store_programs:
-            path = Path(QbloxConfig.output_dir)
-            if path is None:
+            if QbloxConfig.output_dir is not None:
+                path = Path(QbloxConfig.output_dir)
+            else:
                 path = Path.home() / ".q1"
             path.mkdir(exist_ok=True)
             now = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
