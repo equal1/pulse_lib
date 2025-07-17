@@ -641,8 +641,6 @@ class UploadAggregator:
             return
 
         for iseg, seg in enumerate(job.sequence):
-            # fixed sample rate
-            sample_rate = 1e9
 
             for channel_name, channel_info in self.channels.items():
                 if iseg == 0:
@@ -653,7 +651,7 @@ class UploadAggregator:
                         seg_ch = get_conditional_channel(seg, channel_name)
                     else:
                         seg_ch = seg[channel_name]
-                    channel_info.integral += seg_ch.integrate(job.index, sample_rate)
+                    channel_info.integral += seg_ch.integrate(job.index, sample_rate=None)
                     if UploadAggregator.verbose:
                         logger.debug(f'Integral seg:{iseg} {channel_name} integral:{channel_info.integral}')
 

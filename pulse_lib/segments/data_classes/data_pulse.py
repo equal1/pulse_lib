@@ -473,6 +473,7 @@ class pulse_data(parent_data):
     def _pre_process(self, sample_rate=None):
         self._consolidate()
         if self._preprocessed and (not self._hres or self._preprocessed_sample_rate == sample_rate):
+            # sample rate check is only needed for hres.
             return
         n = len(self.pulse_deltas)
         if n == 0:
@@ -555,12 +556,11 @@ class pulse_data(parent_data):
             self._breaks_processed = True
             return
 
-        if True or len(self.pulse_deltas) > 1:
-            # add breaks as 0.0 delta
-            for time in breaks:
-                self.pulse_deltas.append(pulse_delta(time))
-            self.pulse_deltas.sort(key=lambda p: p.time)
-            self._preprocessed = False
+        # add breaks as 0.0 delta
+        for time in breaks:
+            self.pulse_deltas.append(pulse_delta(time))
+        self.pulse_deltas.sort(key=lambda p: p.time)
+        self._preprocessed = False
 
         self._breaks_processed = True
 
@@ -580,6 +580,8 @@ class pulse_data(parent_data):
             integrated_value = 0.5*np.dot((self._amplitudes[:-1] + self._amplitudes_end[:-1]),
                                           self._intervals[:-1])
 
+        if sample_rate is None:
+            sample_rate = 1e9
         for custom_pulse in self.custom_pulse_data:
             integrated_value += np.sum(custom_pulse.render(sample_rate))
 
