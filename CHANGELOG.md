@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.56] - 2025-07-18
+
+- Fix bug with pulse instructions at 1 ns resolution.
+- Small optimization for compilation of hres for Qblox.
+- Fix (potential) bug when applying virtual matrices.
+
 ## \[1.7.55] - 2025-07-16
 
 - Generate Qblox sequence with 1 ns sequencer resolution (reduces code size up to 20%! and number of waves up to 50%!)
