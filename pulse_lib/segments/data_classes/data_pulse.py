@@ -548,6 +548,8 @@ class pulse_data(parent_data):
         Returns:
             integrate (double) : the integrated value of the waveform (unit is mV/sec).
         '''
+        if not self._has_data:
+            return 0
         self._pre_process(sample_rate)
 
         integrated_value = 0
@@ -595,6 +597,8 @@ class pulse_data(parent_data):
                 if True breaks pulse_deltas on custom pulses and MW pulses to
                 allow proper rendering by Qblox uploader.
         '''
+        if not self._has_data:
+            return []
         elements = []
         self._consolidate_phase_shifts()
 
