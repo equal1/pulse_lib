@@ -332,17 +332,10 @@ class pulse_data(parent_data):
         my_copy._hres = self._hres
         my_copy._consolidated = self._consolidated
         my_copy._phase_shifts_consolidated = self._phase_shifts_consolidated
-        my_copy._preprocessed = self._preprocessed
-        my_copy._preprocessed_sample_rate = self._preprocessed_sample_rate
-        my_copy._breaks_processed = self._breaks_processed
 
         return my_copy
 
     def __add__(self, other):
-        '''
-        define addition operator for pulse_data object
-        '''
-
         if isinstance(other, pulse_data):
             if other._has_data:
                 new_data = pulse_data()
@@ -380,9 +373,6 @@ class pulse_data(parent_data):
             raise TypeError(f'Cannot add pulse_data to {type(other)}')
 
     def __iadd__(self, other):
-        '''
-        define addition operator for pulse_data object
-        '''
         if isinstance(other, pulse_data):
             if other._has_data:
                 self.pulse_deltas += other.pulse_deltas
@@ -406,9 +396,6 @@ class pulse_data(parent_data):
         return self
 
     def __mul__(self, other):
-        '''
-        multiplication operator for segment_single
-        '''
         if not isinstance(other, Number):
             raise TypeError(f'Cannot multiply pulse_data with {type(other)}')
 
@@ -483,7 +470,6 @@ class pulse_data(parent_data):
             amplitudes_end = np.zeros(0)
             ramps = np.zeros(0)
             samples = np.zeros(0)
-            samples2 = np.zeros(0)
         else:
             times = np.zeros(n)
             intervals = np.zeros(n)
@@ -492,7 +478,6 @@ class pulse_data(parent_data):
             amplitudes = np.zeros(n)
             amplitudes_end = np.zeros(n)
             samples = np.zeros(n)
-            samples2 = np.zeros(n)
             if self._hres and sample_rate is not None:
                 t_sample = 1e9/sample_rate
                 for i, delta in enumerate(self.pulse_deltas):
@@ -506,14 +491,6 @@ class pulse_data(parent_data):
                     ramps[i] = delta.ramp
                     steps[i] = delta.step - dt*delta.ramp
                     samples[i] = -dt*delta.step + dt*delta.ramp
-
-                    # 2nd order correction have been removed... As far as known it is currenlty not actively used...
-                    # asymmetric 2nd order correction used in v1.6
-                    # samples[i] += - dt*(t_sample-dt)*delta.ramp/2
-
-                    # symmetric 2nd order correction used in v1.7+
-                    # samples[i] += - dt*(t_sample-dt)*delta.ramp/2/2
-                    # samples2[i] = - dt*(t_sample-dt)*delta.ramp/2/2
             else:
                 for i, delta in enumerate(self.pulse_deltas):
                     times[i] = delta.time
@@ -532,7 +509,6 @@ class pulse_data(parent_data):
         self._amplitudes = amplitudes
         self._amplitudes_end = amplitudes_end
         self._samples = samples
-        self._samples2 = samples2
         self._ramps = ramps
         self._preprocessed = True
         self._preprocessed_sample_rate = sample_rate
@@ -713,8 +689,6 @@ class pulse_data(parent_data):
             for i in range(len(t_pt)):
                 pt0 = t_pt[i]
                 wvf[pt0] += self._samples[i]
-                if pt0+1 < t_tot_pt:
-                    wvf[pt0+1] += self._samples2[i]
 
         # render MW pulses.
         # create list with phase shifts per ref_channel
