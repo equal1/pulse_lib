@@ -111,6 +111,7 @@ class SequenceBuilderBase:
         return waveid
 
     def register_sinewave_iq(self, waveform):
+        # TODO: smarter processing to remove duplicates and use zero_wave.
         try:
             index = self.sinewaves.index(waveform)
             waveids = (f'iq{index}I', f'iq{index}Q')
@@ -283,7 +284,9 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         is_long = (t_end - max(t_start, self._t_wave_end)) > 40 # @@@ add to PulsarConfig
 
         # @@@ if constant emit with offset from start waveform.
+        #      t_end - max(t_start, ...) > CONSTANT and abs(v_start-v_end) < lsb and waveform > Constant2
         #     This allows to create gaps of any duration between waveforms.
+
 
         if is_long:
             line_start = PulsarConfig.ceil(max(t_start, self._t_wave_end))
@@ -825,6 +828,7 @@ class IQSequenceBuilder(SequenceBuilderBase):
         #       Anyways, it is always better to have some padding between pulses.
 
         if QbloxConfig.iq_waveform_per_qubit_pulse:
+            # TODO: check duration and total waveform memory.
             if waveform.amod is None:
                 waveform.amod = amplitude
             else:
@@ -1300,7 +1304,8 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
             raise Exception('RF source has negative start time. Acquisition triggered too early. '
                             f'Acquisition start: {t}, RF source start: {t_start}')
         t_start = PulsarConfig.align(t_start)
-        if t_start > self._pulse_end:
+        # Note: there must be at least 4 ns between pulses.
+        if t_start >= self._pulse_end + 4:
             self._add_pulse_end()
             amp0 = self._rf_amplitude
             # amplitude 1 should be 0.0. It's the Q-component used in IQ modulation.
