@@ -73,6 +73,7 @@ def get_sample_rate(job, segment):
     if not isinstance(sample_rate, Number):
         # assume looping object.
         lp_sample_rate = sample_rate
-        index = tuple(job.index[axis] for axis in lp_sample_rate.axis)
+        # Note: axis are indexed in reverse order.
+        index = tuple(job.index[-axis-1] for axis in lp_sample_rate.axis)
         sample_rate = sample_rate[index]
     return sample_rate
