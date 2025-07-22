@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.58] - 2025-07-22
+
+- Fixed a bug in Keysight backend for variable sample rate with long wait times.
+
 ## \[1.7.57] - 2025-07-18
 
 - Fixed a bug with Qblox acquire instructions at 1 ns resolution.
