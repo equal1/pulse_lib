@@ -1190,6 +1190,7 @@ class UploadAggregator:
 
     def upload_job(self, job, awg_upload_func):
 
+        logger.info(f"Compiling {job.index}")
         job.upload_info = JobUploadInfo()
         job.marker_tables = {}
         job.digitizer_triggers = {}

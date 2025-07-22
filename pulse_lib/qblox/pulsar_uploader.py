@@ -1027,6 +1027,7 @@ class UploadAggregator:
         seq.finalize()
 
     def build(self, job):
+        logger.info(f"Compiling {job.index}")
         job.upload_info = JobUploadInfo()
         times = []
         times.append(['start', time.perf_counter()])

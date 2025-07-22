@@ -1141,7 +1141,7 @@ class UploadAggregator:
 
         # add DC compensation
         compensation_time = self.get_max_compensation_time()
-        logger.info(f'DC compensation time: {compensation_time*1e9} ns')
+        logger.info(f'DC compensation time: {int(compensation_time*1e9)} ns')
         compensation_npt = int(np.ceil(compensation_time * section.sample_rate * 1e9))
         if compensation_npt > 50_000:
             # More than 50_000 samples? Use new segment with lower sample rate for compensation
@@ -1710,6 +1710,7 @@ class UploadAggregator:
 
     def upload_job(self, job, awg_upload_func):
 
+        logger.info(f"Compiling {job.index}")
         job.upload_info = JobUploadInfo()
         job.marker_tables = {}
         job.iq_sequences = {}
