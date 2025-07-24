@@ -55,7 +55,7 @@ def test1():
     sequence = pulse.mk_sequence([s1, cond_seg1])
     sequence.n_rep = 3
 
-    context.plot_awgs(sequence, ylim=(-0.100,0.100))
+    context.plot_awgs(sequence, ylim=(-0.250, 0.250))
 
     m_param = sequence.get_measurement_param()
     return context.run('feedback', sequence, m_param)
@@ -105,6 +105,7 @@ def test3():
     f_q1 = pulse.qubit_channels['q1'].resonance_frequency
     f_q2 = pulse.qubit_channels['q2'].resonance_frequency
     M1 = pulse.marker_channels["M_IQ1"]
+
     M1.setup_ns = 100
 
     feedback_latency = get_feedback_latency(pulse._backend)
@@ -126,7 +127,7 @@ def test3():
     s_true = pulse.mk_segment()
     s_false = pulse.mk_segment()
 
-    s_true.q1.add_MW_pulse(10, 20, 800.0, f_q1)
+    s_true.q1.add_MW_pulse(10, 20, 80.0, f_q1)
     s_true.wait(40, reset_time=True)
 
     cond_seg1 = conditional_segment(MeasurementRef('m0'), [s_false, s_true], name='cond')
@@ -134,7 +135,7 @@ def test3():
     s_true = pulse.mk_segment()
     s_false = pulse.mk_segment()
 
-    s_false.q2.add_MW_pulse(10, 20, 800.0, f_q2)
+    s_false.q2.add_MW_pulse(10, 20, 80.0, f_q2)
     s_false.wait(20, reset_time=True)
 
     cond_seg2 = conditional_segment(MeasurementRef('m1'), [s_false, s_true], name='cond')
@@ -145,13 +146,13 @@ def test3():
     sequence = pulse.mk_sequence([s1, cond_seg1, cond_seg2, s_end])
     sequence.n_rep = 3
 
-    context.plot_awgs(sequence, ylim=(-0.100,0.100))
+    context.plot_awgs(sequence, ylim=(-0.100, 0.100))
 
     m_param = sequence.get_measurement_param()
     return context.run('feedback', sequence, m_param)
 
 
-#%%
+# %%
 if __name__ == '__main__':
     context.init_coretools()
     ds1 = test1()
@@ -160,9 +161,8 @@ if __name__ == '__main__':
 
     ds3 = test3()
 
-    cluster = context.station.Qblox
-    from q1simulator import Q1Plotter
+    # cluster = context.station.Qblox
+    # from q1simulator import Q1Plotter
 
-    plotter = Q1Plotter(cluster)
-    plotter.plot()
-
+    # plotter = Q1Plotter(cluster)
+    # plotter.plot()
