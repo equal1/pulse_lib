@@ -163,18 +163,19 @@ class marker_data(parent_data):
         if not isinstance(other, marker_data):
             raise ValueError("only markers can be added to markers. No other types allowed.")
 
-        new_data = marker_data()
         if other.has_data:
-            new_data.my_marker_data = self.my_marker_data + other.my_marker_data
+            new_data = marker_data()
             new_data._has_data = True
+            new_data.my_marker_data = self.my_marker_data + other.my_marker_data
+            new_data.start_time = self.start_time
+            if other.end_time > self.end_time:
+                new_data.end_time = other.end_time
+            else:
+                new_data.end_time = self.end_time
 
-        new_data.start_time = self.start_time
-        new_data.end_time = self.end_time
-
-        if other.end_time > self.end_time:
-            new_data.end_time = other.end_time
-
-        return new_data
+            return new_data
+        else:
+            return self
 
     def __mul__(self, other):
         raise ValueError("No multiplication support for markers ...")
