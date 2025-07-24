@@ -179,7 +179,6 @@ class pulse_data(parent_data):
         self.start_time = 0
         self.end_time = 0
         self._hres = hres
-        self._has_data = False
         self._consolidated = False
         self._preprocessed = False
         self._preprocessed_sample_rate = None
@@ -659,6 +658,12 @@ class pulse_data(parent_data):
         new_data._hres = self._hres
         new_data._consolidated = self._consolidated
         new_data._phase_shifts_consolidated = self._phase_shifts_consolidated
+
+        new_data._has_data = (
+            len(new_data.MW_pulse_data) > 0
+            or len(new_data.chirp_data) > 0
+            or len(new_data.phase_shifts) > 0
+            )
 
         return new_data
 
