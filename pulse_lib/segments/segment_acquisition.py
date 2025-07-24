@@ -36,6 +36,7 @@ class segment_acquisition():
         self.name = name
         self._measurement_segment = measurement_segment
         self._measurement_index = 0
+        self._has_data = False
 
         # store data in numpy looking object for easy operator access.
         self.data = data_container(acquisition_data())
@@ -54,6 +55,15 @@ class segment_acquisition():
         self._setpoints = setpoint_mgr()
         self.render_mode = False
         self.is_slice = False
+
+    @property
+    def has_data(self):
+        if not self._has_data:
+            for d in self.data.flat:
+                if d.has_data:
+                    self._has_data = True
+                    return True
+        return False
 
     def acquire(self, start, t_measure=None, ref=None,
                 n_repeat=None, interval=None,

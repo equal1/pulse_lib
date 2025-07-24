@@ -31,9 +31,19 @@ class conditional_segment:
 
         self.name = name
         self.sample_rate = sample_rate
+        self._has_data = False
 
         # setpoints?
         self._setpoints = setpoint_mgr()
+
+    @property
+    def has_data(self):
+        if not self._has_data:
+            for branche in self.branches:
+                if branche.has_data:
+                    self._has_data = True
+                    return True
+        return False
 
     def __copy__(self):
         pass

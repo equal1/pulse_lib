@@ -171,6 +171,9 @@ class sequencer():
         # check input
         for entry in sequence:
             if isinstance(entry, segment_container) or isinstance(entry, conditional_segment):
+                # skip empty segments
+                if np.all(entry.total_time == 0.0) and not entry.has_data:
+                    continue
                 self.sequence.append(entry)
             else:
                 raise ValueError('The provided element in the sequence seems to be of the wrong data type.'

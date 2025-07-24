@@ -41,6 +41,7 @@ class acquisition_data(parent_data):
         if acquisition.start <= self._last_acquisition:
             raise Exception('Acquisition cannot be added at same time or before other acquisition')
         self._last_acquisition = acquisition.start
+        self._has_data = True
         self.data.append(acquisition)
         end_time = acquisition.start
         if wait:
@@ -108,14 +109,17 @@ class acquisition_data(parent_data):
         elif time == -1:
             time = self.end_time
 
-        other_shifted = other._shift_all_time(time)
-        self.data += other_shifted.data
+        if other.has_data:
+            other_shifted = other._shift_all_time(time)
+            self.data += other_shifted.data
+            self._has_data = True
 
         self.end_time = max(self.end_time, time + other.end_time)
 
     def __copy__(self):
         my_copy = acquisition_data()
         my_copy.data = copy.deepcopy(self.data)
+        my_copy._has_data = self._has_data
         my_copy.start_time = copy.copy(self.start_time)
         my_copy.end_time = copy.copy(self.end_time)
 

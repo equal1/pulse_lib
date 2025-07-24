@@ -58,6 +58,16 @@ class segment_base():
         # setpoints of the loops (with labels and units)
         self._setpoints = setpoint_mgr()
         self.is_slice = False
+        self._has_data = False
+
+    @property
+    def has_data(self):
+        if not self._has_data:
+            for d in self.data.flat:
+                if d.has_data:
+                    self._has_data = True
+                    return True
+        return False
 
     def _copy(self, cpy):
         cpy.type = copy.copy(self.type)

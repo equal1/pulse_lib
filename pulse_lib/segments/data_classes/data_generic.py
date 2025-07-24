@@ -23,6 +23,7 @@ class parent_data(ABC):
 
     def __init__(self):
         self._cache_id = None
+        self._has_data = False
 
     @classmethod
     def set_waveform_cache_size(cls, size):
@@ -40,6 +41,10 @@ class parent_data(ABC):
         '''
         # clear the cache by initializing a new one of the same size
         cls.waveform_cache = LruCache(cls.waveform_cache.max_size)
+
+    @property
+    def has_data(self):
+        return self._has_data
 
     @abstractmethod
     def append(self, other):

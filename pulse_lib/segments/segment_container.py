@@ -48,6 +48,7 @@ class segment_container():
         self.sample_rate = sample_rate
         self.is_slice = False
         self.slice_index = []
+        self._has_data = False
 
         # define real channels (+ markers)
         for name in channel_names:
@@ -85,6 +86,15 @@ class segment_container():
 
         self._setpoints = setpoint_mgr()
         self._shape = (1,)
+
+    @property
+    def has_data(self):
+        if not self._has_data:
+            for ch in self.channels.values():
+                if ch.has_data:
+                    self._has_data = True
+                    return True
+        return False
 
     def __getitem__(self, index):
         if isinstance(index, str):

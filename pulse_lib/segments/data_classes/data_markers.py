@@ -8,20 +8,22 @@ import numpy as np
 import copy
 from dataclasses import dataclass
 
+
 @dataclass
 class marker_pulse:
     start: float
     stop: float
 
+
 class marker_data(parent_data):
-    def __init__(self, pulse_amplitude = 1000):
+    def __init__(self, pulse_amplitude=1000):
         """
         init marker object
         Args:
             pulse_amplitude(double) : pulse amplitude in mV
         """
         super().__init__()
-        self.my_marker_data =  list()
+        self.my_marker_data = list()
 
         self.start_time = 0
         self.end_time = 0
@@ -37,12 +39,13 @@ class marker_data(parent_data):
         """
         if stop < start:
             raise ValueError(f"Start time ({start}) should be > stop time ({stop})")
-        self.my_marker_data.append( marker_pulse(start + self.start_time, stop + self.start_time) )
+        self._has_data = True
+        self.my_marker_data.append(marker_pulse(start + self.start_time, stop + self.start_time))
 
         if stop + self.start_time > self.end_time:
             self.end_time = self.start_time + stop
 
-    def reset_time(self, time = None):
+    def reset_time(self, time=None):
         """
         reset the effective start time. See online manual in pulse building instructions to understand this command.
         Args:
@@ -50,7 +53,7 @@ class marker_data(parent_data):
         """
         self.start_time = self.total_time
         if time is not None:
-            self.start_time =time
+            self.start_time = time
 
         if self.start_time > self.end_time:
             self.end_time = self.start_time
@@ -75,10 +78,10 @@ class marker_data(parent_data):
         '''
         return self.end_time
 
-    def get_vmin(self,sample_rate = 1e9):
+    def get_vmin(self, sample_rate=1e9):
         return 0
 
-    def get_vmax(self,sample_rate = 1e9):
+    def get_vmax(self, sample_rate=1e9):
         return self.pulse_amplitude
 
     def integrate_waveform(self, sample_rate):
@@ -111,8 +114,10 @@ class marker_data(parent_data):
         elif time == -1:
             time = self.end_time
 
-        other_shifted = other._shift_all_time(time)
-        self.my_marker_data += other_shifted.my_marker_data
+        if other.has_data:
+            other_shifted = other._shift_all_time(time)
+            self.my_marker_data += other_shifted.my_marker_data
+            self._has_data = True
 
         self.end_time = max(self.end_time, time + other.end_time)
 
@@ -124,7 +129,7 @@ class marker_data(parent_data):
         my_copy.my_marker_data = copy.copy(self.my_marker_data)
         my_copy.start_time = copy.copy(self.start_time)
         my_copy.end_time = copy.copy(self.end_time)
-
+        my_copy._has_data = self._has_data
 
         return my_copy
 
@@ -137,7 +142,7 @@ class marker_data(parent_data):
         Returns:
             data_copy_shifted (pulse_data) : copy of own data
         '''
-        if time_shift <0 :
+        if time_shift < 0:
             raise ValueError("when shifting time, you cannot make negative times. Apply a positive shift.")
 
         data_copy_shifted = copy.copy(self)
@@ -145,7 +150,6 @@ class marker_data(parent_data):
         for i in range(len(data_copy_shifted.my_marker_data)):
             data_copy_shifted.my_marker_data[i] = marker_pulse(data_copy_shifted.my_marker_data[i].start + time_shift,
                                                                data_copy_shifted.my_marker_data[i].stop + time_shift)
-
 
         return data_copy_shifted
 
@@ -160,10 +164,12 @@ class marker_data(parent_data):
             raise ValueError("only markers can be added to markers. No other types allowed.")
 
         new_data = marker_data()
-        new_data.my_marker_data = self.my_marker_data + other.my_marker_data
+        if other.has_data:
+            new_data.my_marker_data = self.my_marker_data + other.my_marker_data
+            new_data._has_data = True
 
         new_data.start_time = self.start_time
-        new_data.end_time= self.end_time
+        new_data.end_time = self.end_time
 
         if other.end_time > self.end_time:
             new_data.end_time = other.end_time
@@ -202,4 +208,3 @@ class marker_data(parent_data):
     def get_metadata(self, name):
         # TODO: add all pulses ??
         return {}
-
