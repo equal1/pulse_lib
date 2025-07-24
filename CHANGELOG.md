@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.59] - 2025-07-24
+
+- Skip empty segments during compilation reducing number of waveforms for Keysight.
+
 ## \[1.7.58] - 2025-07-22
 
 - Fixed a bug in Keysight backend for variable sample rate with long wait times.
