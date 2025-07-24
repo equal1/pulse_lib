@@ -46,7 +46,8 @@ class Waveform:
 
     def __hash__(self):
         if self.__hash is None:
-            hsh = self.amplitude + self.frequency/1000 + self.prephase + self.postphase + self.duration + self.offset
+            frequency = (self.frequency or 0.0)
+            hsh = self.amplitude + frequency/1000 + self.prephase + self.postphase + self.duration + self.offset
             if self.am_envelope is not None:
                 hsh += np.sum(self.am_envelope)
             if self.pm_envelope is not None:
