@@ -63,7 +63,7 @@ class segment_acquisition():
                 if d.has_data:
                     self._has_data = True
                     return True
-        return False
+        return self._has_data
 
     def acquire(self, start, t_measure=None, ref=None,
                 n_repeat=None, interval=None,

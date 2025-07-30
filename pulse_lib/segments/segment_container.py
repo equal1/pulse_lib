@@ -94,7 +94,7 @@ class segment_container():
                 if ch.has_data:
                     self._has_data = True
                     return True
-        return False
+        return self._has_data
 
     def __getitem__(self, index):
         if isinstance(index, str):

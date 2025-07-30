@@ -43,7 +43,7 @@ class conditional_segment:
                 if branche.has_data:
                     self._has_data = True
                     return True
-        return False
+        return self._has_data
 
     def __copy__(self):
         pass

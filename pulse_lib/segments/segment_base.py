@@ -67,7 +67,7 @@ class segment_base():
                 if d.has_data:
                     self._has_data = True
                     return True
-        return False
+        return self._has_data
 
     def _copy(self, cpy):
         cpy.type = copy.copy(self.type)
