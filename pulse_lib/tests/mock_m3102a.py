@@ -29,11 +29,11 @@ class MockM3102A(Instrument):
         for prop in self.measure._ch_properties.values():
             prop.acquisition_mode = mode
 
-    def set_channel_acquisition_mode(self, ch_num, mode):
-        self.measure._ch_properties[ch_num].acquisition_mode = mode
+    def set_channel_acquisition_mode(self, channel, mode):
+        self.measure._ch_properties[channel].acquisition_mode = mode
 
-    def get_channel_acquisition_mode(self, ch_num):
-        return self.measure._ch_properties[ch_num].acquisition_mode
+    def get_channel_acquisition_mode(self, channel):
+        return self.measure._ch_properties[channel].acquisition_mode
 
     def set_active_channels(self, channel_list):
         self.measure._active_channels = set(channel_list)
