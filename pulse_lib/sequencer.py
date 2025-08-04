@@ -172,7 +172,7 @@ class sequencer():
         for entry in sequence:
             if isinstance(entry, segment_container) or isinstance(entry, conditional_segment):
                 # skip empty segments
-                if np.all(entry.total_time == 0.0) and not entry.has_data:
+                if entry.is_empty:
                     continue
                 self.sequence.append(entry)
             else:
@@ -592,10 +592,6 @@ class sequencer():
         Sends the sequence with the provided index to the uploader module.
         Args:
             index (tuple): index if wich you wannt to upload. If None the index set by sweep parameters is used.
-
-        Remark that upload and play can run at the same time and it is best to
-        start multiple uploads at once (during upload you can do playback, when the first one is finihsed)
-        (note that this is only possible if you AWG supports upload while doing playback)
         '''
         if index is None:
             index = self.sweep_index[::-1]

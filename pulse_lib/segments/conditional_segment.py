@@ -37,13 +37,13 @@ class conditional_segment:
         self._setpoints = setpoint_mgr()
 
     @property
-    def has_data(self):
+    def is_empty(self):
         if not self._has_data:
             for branche in self.branches:
                 if branche.has_data:
                     self._has_data = True
-                    return True
-        return self._has_data
+                    break
+        return not self._has_data
 
     def __copy__(self):
         pass

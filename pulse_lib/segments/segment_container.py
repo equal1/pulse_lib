@@ -88,13 +88,19 @@ class segment_container():
         self._shape = (1,)
 
     @property
-    def has_data(self):
+    def is_empty(self):
         if not self._has_data:
-            for ch in self.channels.values():
-                if ch.has_data:
-                    self._has_data = True
-                    return True
-        return self._has_data
+            if not np.all(self.total_time == 0.0):
+                self._has_data = True
+            else:
+                for ch in self.channels.values():
+                    # Note: segment_pulse and segment_IQ can have pulse with duration 0.0 ns which is
+                    #       effectively nothing.
+                    #       But acquisition and marker can have data with a duration 0.0.
+                    if isinstance(ch, segment_acquisition | segment_marker) and ch.has_data:
+                        self._has_data = True
+                        break
+        return not self._has_data
 
     def __getitem__(self, index):
         if isinstance(index, str):
