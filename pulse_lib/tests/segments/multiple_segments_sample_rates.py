@@ -39,14 +39,14 @@ def test_multiple():
     sequence = pulse.mk_sequence([s1, s_wait, s2])
     sequence.n_rep = None
 
-    context.plot_awgs(sequence, ylim=(-0.250, 0.250))
+    # context.plot_awgs(sequence, ylim=(-0.250, 0.250))
 
     m_param = sequence.get_measurement_param()
     return context.run('multiple_segments', sequence, m_param)
 
 
-def test_empty():
-    pulse = context.init_pulselib(n_gates=2, n_qubits=2, n_sensors=2, n_markers=1)
+def test_empty(with_acquisition=False):
+    pulse = context.init_pulselib(n_gates=2, n_qubits=2, n_sensors=2, n_markers=1, virtual_gates=True)
     f_q1 = pulse.qubit_channels['q1'].resonance_frequency
 
     t_measure = 500
@@ -66,6 +66,11 @@ def test_empty():
     s_wait1 = pulse.mk_segment(sample_rate=2e8)
     s_wait1.wait(1e5, reset_time=True)
     s_empty = pulse.mk_segment()
+    s_empty.P1.add_block(0, -1, 100)
+    if with_acquisition:
+        # Not empty!
+        s_empty.SD1.acquire(0, t_measure, 'm2', wait=False)
+
     s_wait2 = pulse.mk_segment(sample_rate=2e8)
     s_wait2.wait(1e5, reset_time=True)
 
@@ -79,7 +84,12 @@ def test_empty():
     sequence = pulse.mk_sequence([s1, s_wait1, s_empty, s_wait2, s2])
     sequence.n_rep = None
 
-    context.plot_awgs(sequence, ylim=(-0.250, 0.250))
+    if with_acquisition:
+        assert len(sequence.sequence) == 5
+    else:
+        assert len(sequence.sequence) == 4
+
+    # context.plot_awgs(sequence, ylim=(-0.250, 0.250))
 
     m_param = sequence.get_measurement_param()
     return context.run('multiple_segments_empty', sequence, m_param)
@@ -106,3 +116,4 @@ if __name__ == '__main__':
     context.init_coretools()
     ds1 = test_multiple()
     ds2 = test_empty()
+    ds3 = test_empty(with_acquisition=True)
