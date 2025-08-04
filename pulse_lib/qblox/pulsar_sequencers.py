@@ -605,14 +605,21 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
         self._linear_interpolations: list[LinearInterpolation] = []
         self._tail_waveform = None
 
-    def set_interpolation_sections(self, sections: list[Interpolate], interpolation_step: int):
-        self._interpolation_sections = sections
+    def set_interpolation_sections(
+            self,
+            sections: list[Interpolate],
+            interpolation_step: int,
+            offset: int):
+        self._interpolation_sections = [
+            Interpolate(section.start+offset, section.stop+offset)
+            for section in sections
+            ]
         self._interpolate_index = -1
         self._interpolation_step = interpolation_step
 
         if len(sections) > 0:
             if self.verbose:
-                logger.info(f"Interpolating sines {sections}")
+                logger.info(f"Interpolating sines {self._interpolation_sections}")
             self._set_next_interpolation()
 
     def _set_next_interpolation(self):

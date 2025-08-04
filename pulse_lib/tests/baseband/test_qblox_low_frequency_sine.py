@@ -5,7 +5,7 @@ from pulse_lib.tests.configurations.test_configuration import context
 # %%
 
 def test1():
-    pulse = context.init_pulselib(n_gates=2)
+    pulse = context.init_pulselib(n_gates=2, n_sensors=2, rf_sources=True)
 
     segments = []
 
@@ -26,7 +26,7 @@ def test1():
 
 
 def test2():
-    pulse = context.init_pulselib(n_gates=2)
+    pulse = context.init_pulselib(n_gates=2, n_sensors=2, rf_sources=True)
 
     segments = []
 
@@ -46,7 +46,7 @@ def test2():
 
 
 def test3():
-    pulse = context.init_pulselib(n_gates=2)
+    pulse = context.init_pulselib(n_gates=2, n_sensors=2, rf_sources=True)
 
     segments = []
 
@@ -68,7 +68,7 @@ def test3():
 
 
 def test4():
-    pulse = context.init_pulselib(n_gates=2)
+    pulse = context.init_pulselib(n_gates=2, n_sensors=2, rf_sources=True)
 
     segments = []
 

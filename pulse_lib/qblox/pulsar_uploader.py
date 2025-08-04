@@ -770,7 +770,11 @@ class UploadAggregator:
             entries = data.get_data_elements(break_ramps=True)
             if sine_interpolation_step:
                 interpolations = InterpolationCompiler(sine_interpolation_step, entries)
-                seq.set_interpolation_sections(interpolations.sections, interpolation_step=sine_interpolation_step)
+                seq.set_interpolation_sections(
+                    interpolations.sections,
+                    interpolation_step=sine_interpolation_step,
+                    offset=seg_start,
+                    )
 
             for e in entries:
                 # NOTE: alignment is done in VoltageSequenceBuilder
