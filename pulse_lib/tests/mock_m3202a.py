@@ -80,7 +80,7 @@ class MockM3202A(Instrument):
     def upload_waveform(self, wave) -> WaveformReference:
         size = len(wave)
         # discretize samples
-        data = (wave*2**15).astype(np.int16)
+        data = (wave*2**15-1).astype(np.int16)
         data &= np.uint16(0xFFF8)  # 13 bit resolution
         data = data.astype(float)
         data /= 2**15
