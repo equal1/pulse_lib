@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.60] - 2025-08-04
+
+- Fixed low frequency interpolation (Qblox) taking care of delays and multiple segments.
+- Fixed skipping empty segments.
+
 ## \[1.7.59] - 2025-07-24
 
 - Skip empty segments during compilation reducing number of waveforms for Keysight.
