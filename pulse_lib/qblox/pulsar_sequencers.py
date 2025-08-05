@@ -216,6 +216,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         self._v_start = None
         self._v_end = None
         self._constant_end = False
+        self._t_constant = 0
         # keep track of the last RT command. There must be 0 or >= 4 ns between the commands.
         self._last_rt_cmd = 0
 
@@ -549,6 +550,8 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
             self._v_start = None
             # It is not yet the last command, but there shall not be a command before this one.
             self._last_rt_cmd = self._t_wave_start
+            if self.verbose:
+                logger.info(f"EMIT remainder {self._t_wave_start} : {self._t_wave_end}")
         else:
             self._rendering = False
 
@@ -626,19 +629,8 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
         if self._interpolate_index + 1 < len(self._interpolation_sections):
             self._interpolate_index += 1
             self._interpolate = self._interpolation_sections[self._interpolate_index]
-            # start after current waveform end. With minimum wave duration of 4 ns.
-            # Currently it is sufficient to ceil to 4 ns.
-            intp_start = PulsarConfig.ceil(self._interpolate.start)
-            intp_end = PulsarConfig.floor(self._interpolate.stop)
-            self._linear_interpolations = [
-                LinearInterpolation(start, start + self._interpolation_step)
-                for start in range(intp_start, intp_end-self._interpolation_step+1, self._interpolation_step)
-                ]
-            interpolation_stop = self._linear_interpolations[-1].t_stop
-            if interpolation_stop < self._interpolate.stop:
-                self._tail_waveform = np.zeros(8000)
-            else:
-                self._tail_waveform = None
+            self._linear_interpolations = None
+            self._tail_waveform = None
         else:
             self._interpolate = None
             self._linear_interpolations = []
@@ -647,6 +639,19 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
         if self._interpolate is None:
             return []
         if t_start >= self._interpolate.start and t_stop <= self._interpolate.stop:
+            if self._linear_interpolations is None:
+                # Start at least 4 ns after last rt command
+                intp_start = max(PulsarConfig.ceil(self._interpolate.start), self._last_rt_cmd + 4)
+                intp_end = PulsarConfig.floor(self._interpolate.stop)
+                self._linear_interpolations = [
+                    LinearInterpolation(start, start + self._interpolation_step)
+                    for start in range(intp_start, intp_end-self._interpolation_step+1, self._interpolation_step)
+                    ]
+                interpolation_stop = self._linear_interpolations[-1].t_stop
+                if interpolation_stop < self._interpolate.stop:
+                    self._tail_waveform = np.zeros(8000)
+                else:
+                    self._tail_waveform = None
             return self._linear_interpolations
         else:
             return []
@@ -660,8 +665,9 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
             logger.info(f"ramp {t_start}, {t_end}, {v_start}, {v_end}")
 
         if self._hres:
-            t_start = PulsarConfig.hres_round(t_start)
-            t_end = PulsarConfig.hres_round(t_end)
+            # t_start = PulsarConfig.hres_round(t_start)
+            # t_end = PulsarConfig.hres_round(t_end)
+            raise Exception("Interpolation and hres=True is not supported")
         else:
             t_start = iround(t_start)
             t_end = iround(t_end)
@@ -683,9 +689,10 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
         if self._tail_waveform is not None:
             n = t_end - interpolations[-1].t_stop
             if n == 0:
-                raise Exception("Internal error. Unexpected empty tail in interpolation.")
-            data = np.linspace(v_start+dvdt*intp_stop, v_end, n, endpoint=False)
-            self._tail_waveform[:n] += data
+                logger.info("No tail in ramp")
+            else:
+                data = np.linspace(v_start+dvdt*intp_stop, v_end, n, endpoint=False)
+                self._tail_waveform[:n] += data
 
         self._flush_interpolation(t_end)
 
@@ -739,12 +746,13 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
         if self._tail_waveform is not None:
             n = len(sine_data) - intp_stop
             if n == 0:
-                raise Exception("Internal error. Unexpected empty tail in interpolation.")
-            self._tail_waveform[:n] += sine_data[-n:]
+                logger.info("No tail in sine")
+            else:
+                self._tail_waveform[:n] += sine_data[-n:]
 
     def custom_pulse(self, t_start, t_end, amplitude, custom_pulse):
         if self.interpolate(t_start, t_end):
-            raise Exception("Internal error. Cannot interpolation custom pulse")
+            raise Exception("Internal error. Cannot interpolate custom pulse")
         super().custom_pulse(t_start, t_end, amplitude, custom_pulse)
 
     def _copy_tail_waveform(self, t_end):
@@ -754,18 +762,29 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
         t_wave_start = self._linear_interpolations[-1].t_stop
         if self.verbose:
             logger.debug(f"copy tail {t_wave_start} {t_end}")
-        self._rendering = True
-        self._t_wave_start = t_wave_start
-        self._t_wave_end = t_end
-        self._v_start = None
-        self._waveform = self._tail_waveform
+        if t_wave_start == t_end:
+            offset = self.v_compensation
+            self._set_offset(t_end, offset)
+            self._rendering = False
+        else:
+            self._rendering = True
+            self._t_wave_start = t_wave_start
+            self._t_wave_end = t_end
+            self._v_start = None
+            self._waveform = self._tail_waveform
+            self._last_rt_cmd = self._t_wave_start
         self._tail_waveform = None
 
     def _flush_interpolation(self, t_end):
         interpolations = self._linear_interpolations
-        # play samples before interpolation
-        self._emit_waveform(interpolations[0].t_start)
         if self._rendering:
+            # play samples before interpolation
+            self._emit_waveform(interpolations[0].t_start)
+        if self.verbose:
+            logger.info(f"Flush interpolations {interpolations[0].t_start}, {interpolations[-1].t_stop}")
+        if self._rendering:
+            logger.info(f"Flush interpolations {interpolations[0].t_start}, {interpolations[-1].t_stop}. "
+                        f"Rendering waveform: {self._t_wave_start} : {self._t_wave_end}")
             raise Exception("Internal error. Shouldn't be rendering during interpolation")
         # output linear sections
         ramp_waveform = np.linspace(0.0, 1.0, self._interpolation_step, endpoint=False)

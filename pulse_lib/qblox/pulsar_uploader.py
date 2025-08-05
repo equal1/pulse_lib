@@ -208,7 +208,7 @@ class PulsarUploader:
         try:
             aggregator.build(job)
         except Exception:
-            logger.error(f"Error during compilation:\n{job.program.describe()}")
+            logger.error(f"Error during compilation:\n{job.program.describe()}", exc_info=True)
             raise
 
         duration = time.perf_counter() - start

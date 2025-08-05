@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.61] - 2025-08-05
+
+- Fixed low frequency interpolation (Qblox) edge cases with timing.
+
 ## \[1.7.60] - 2025-08-04
 
 - Fixed low frequency interpolation (Qblox) taking care of delays and multiple segments.
