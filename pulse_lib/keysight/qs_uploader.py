@@ -958,6 +958,7 @@ class SegmentRenderInfo:
     sample_rate: float
     t_start: float
     npt: int
+    is_empty: bool = False
     section: RenderSection | None = None
     offset: int = 0
     # transition when frequency changes: size determined by alignment and channel delays
@@ -1069,7 +1070,7 @@ class UploadAggregator:
             if UploadAggregator.verbose:
                 logger.debug(f'Seg duration:{duration:9.3f}')
             npt = iround(duration * sample_rate)
-            info = SegmentRenderInfo(sample_rate, t_start, npt)
+            info = SegmentRenderInfo(sample_rate, t_start, npt, seg.is_empty)
             segments.append(info)
             t_start = info.t_end
 
@@ -1082,13 +1083,19 @@ class UploadAggregator:
         sections.append(section)
         section.npt += iround(max_pre_start_ns * section.sample_rate)
 
+        sample_rate = section.sample_rate
         for iseg, seg in enumerate(segments):
-            sample_rate = seg.sample_rate
+            # Empty segment should not change sample rate.
+            if not seg.is_empty:
+                sample_rate = seg.sample_rate
 
-            if iseg < nseg-1:
-                sample_rate_next = segments[iseg+1].sample_rate
-            else:
-                sample_rate_next = 0
+            sample_rate_next = None
+            inext = iseg+1
+            while inext < nseg:
+                if not segments[inext].is_empty:
+                    sample_rate_next = segments[inext].sample_rate
+                    break
+                inext += 1
 
             # create welding region if sample_rate decreases
             if sample_rate < section.sample_rate:
@@ -1113,7 +1120,7 @@ class UploadAggregator:
             section.npt += seg.npt
 
             # create welding region if sample rate increases
-            if sample_rate_next != 0 and sample_rate_next > sample_rate:
+            if sample_rate_next is not None and sample_rate_next > sample_rate:
                 # The current section should end before the next segment starts:
                 # - subtract any extension into the next segment
                 # - align boundary with truncation

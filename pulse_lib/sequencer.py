@@ -171,9 +171,6 @@ class sequencer():
         # check input
         for entry in sequence:
             if isinstance(entry, segment_container) or isinstance(entry, conditional_segment):
-                # skip empty segments
-                if entry.is_empty:
-                    continue
                 self.sequence.append(entry)
             else:
                 raise ValueError('The provided element in the sequence seems to be of the wrong data type.'

@@ -84,12 +84,16 @@ def test_empty(with_acquisition=False):
     sequence = pulse.mk_sequence([s1, s_wait1, s_empty, s_wait2, s2])
     sequence.n_rep = None
 
-    if with_acquisition:
-        assert len(sequence.sequence) == 5
-    else:
-        assert len(sequence.sequence) == 4
+    if pulse._backend in ["Keysight", "Keysight_QS"]:
+        sequence.upload()
+        sequence.play()
+        waveforms, prescalers = context.pulse.awg_devices["AWG1"].get_data_prescaler(1)
+        print("Length waveforms:", [(len(wvf), prescaler) for wvf, prescaler in zip(waveforms, prescalers)])
 
-    # context.plot_awgs(sequence, ylim=(-0.250, 0.250))
+        if with_acquisition:
+            assert len(waveforms) == 5
+        else:
+            assert len(waveforms) == 3
 
     m_param = sequence.get_measurement_param()
     return context.run('multiple_segments_empty', sequence, m_param)
@@ -107,7 +111,7 @@ if __name__ == '__main__':
             (int(1e5), 400),  # Uploading 4e7 samples takes 0.8s.
             (int(1e6), 16),  # Uploading 1.6e7 samples takes 0.3s.
             (int(1e7), 8),  # Uploading 8e7 samples takes 1.6s.
-            (int(5e8), 8)  # Uploading 4e8 samples takes 7.5s.
+            (int(5e7), 8)  # Uploading 4e8 samples takes 7.5s.
         }
 
     UploadAggregator_M3202A.verbose = True
