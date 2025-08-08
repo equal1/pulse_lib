@@ -280,7 +280,7 @@ class MockM3202A_fpga(MockM3202A):
         if len(self.marker_table) > 0:
             t = []
             values = []
-            print(self.marker_table)
+            print("Markers:", self.marker_table)
             last = 0
             ticks = 0
             for m in self.marker_table:
