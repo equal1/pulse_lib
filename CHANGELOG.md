@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.63] - 2025-08-08
+
+- Fixed processing of ramps with very small slope.
+
 ## \[1.7.62] - 2025-08-08
 
 - Improved handling of empty segments for Keysight.

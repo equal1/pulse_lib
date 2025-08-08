@@ -57,11 +57,11 @@ class pulse_delta:
 
     @property
     def is_near_zero(self):
-        # near zero if |step| < 1e-9 mV and |ramp| < 1e-9 mV/ns (= 1 mV/s)
-        # note: max ramp: 2V/ns = 2000 mV/ns, min ramp: 1 mV/s = 1e-9 mV/ns. ~ 12 orders of magnitude.
+        # near zero if |step| < 1e-9 mV and |ramp| < 1e-10 mV/ns (= 0.1 mV/s)
+        # note: max ramp: 2V/ns = 2000 mV/ns, min ramp: 0.11 mV/s = 1e-10 mV/ns. ~ 13 orders of magnitude.
         # max step: 2000 mV, min step: 1e-9 mV. ~ 12 order of magnitude.
-        # Regular floats have 16 digits precision.
-        return abs(self.step) < 1e-9 and abs(self.ramp) < 1e-9
+        # Double precision floats have ~16 digits precision.
+        return abs(self.step) < 1e-9 and abs(self.ramp) < 1e-10
 
 
 @dataclass
@@ -433,8 +433,13 @@ class pulse_data(parent_data):
         if self._consolidated:
             return
         if len(self.pulse_deltas) == 1:
-            logger.error(f'Asjemenou {self.pulse_deltas}')
-            raise Exception(f'Error in pulse data: {self.pulse_deltas}')
+            delta = self.pulse_deltas[0]
+            if abs(delta.step) < 1E-4 and abs(delta.ramp) < 1E-6:
+                # step < 0.1 uV and ramp < 1 uV/us
+                logger.info(f"Ignoring rounding error in consolidation {delta}")
+            else:
+                logger.error(f'Asjemenou {self.pulse_deltas}')
+                raise Exception(f'Error in pulse data: {self.pulse_deltas}')
 
         if len(self.pulse_deltas) > 1:
             self.pulse_deltas.sort(key=lambda p: p.time)
