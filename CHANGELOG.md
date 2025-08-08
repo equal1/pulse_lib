@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.62] - 2025-08-08
+
+- Improved handling of empty segments for Keysight.
+
 ## \[1.7.61] - 2025-08-05
 
 - Fixed low frequency interpolation (Qblox) edge cases with timing.
