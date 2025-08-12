@@ -2,11 +2,12 @@
 from pulse_lib.tests.configurations.test_configuration import context
 
 
-#%%
+# %%
 from pulse_lib.segments.conditional_segment import conditional_segment
 from pulse_lib.segments.utility.measurement_ref import MeasurementRef
 
 drive_with_plungers = False
+
 
 def get_feedback_latency(backend):
     if backend in ['Tektronix_5014', 'Keysight']:
@@ -94,7 +95,7 @@ def test2():
     sequence = pulse.mk_sequence([s1, cond_seg1])
     sequence.n_rep = 3
 
-    context.plot_awgs(sequence, ylim=(-0.100,0.100))
+    context.plot_awgs(sequence, ylim=(-0.100, 0.100))
 
     m_param = sequence.get_measurement_param()
     return context.run('feedback', sequence, m_param)

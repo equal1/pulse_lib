@@ -1062,9 +1062,9 @@ class IQSequenceBuilder(SequenceBuilderBase):
                 while loop:
                     loop = False
                     if (self._t_next_latch_event is not None
-                        and self._t_next_latch_event < t
+                        and self._t_next_latch_event <= t - 4
                         and (self.t_next_marker is None
-                             or self._t_next_latch_event < self.t_next_marker)):
+                             or self._t_next_latch_event <= self.t_next_marker - 4)):
                         self._add_next_latch_event()
                         loop = True
                     elif self.t_next_marker is not None and t >= self.t_next_marker:
@@ -1102,7 +1102,7 @@ class IQSequenceBuilder(SequenceBuilderBase):
         else:
             self.seq.latch_enable(latch_event.enable, t_offset=t)
         # Increment time with time used for latch instruction
-        self.t_end = t+4
+        self.t_end = t + 4
         self._set_next_latch_event()
 
     def finalize(self):
