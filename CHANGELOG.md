@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.64] - 2025-08-12
+
+- Fixed trigger latching for conditional pulses with 1 ns resolution on Qblox.
+
 ## \[1.7.63] - 2025-08-08
 
 - Fixed processing of ramps with very small slope.
