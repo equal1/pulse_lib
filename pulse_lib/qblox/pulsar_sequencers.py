@@ -994,7 +994,7 @@ class IQSequenceBuilder(SequenceBuilderBase):
         t_end = PulsarConfig.align(t_end)
         self._update_time_and_markers(t_start, 0.0)
         if self._pending_phase_shift != 0.0:
-            self._insert_phase_shift()
+            self._insert_phase_shift(t_start)
         self.seq.chirp(t_end-t_start, amplitude,
                        start_frequency, stop_frequency,
                        t_offset=t_start)
@@ -1142,7 +1142,7 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
         self._commands = []
         self._weights = []
         self.rf_source_mode = rf_source.mode if rf_source is not None else None
-        self._pulse_end = -1
+        self._pulse_end: int | None = None
         self.offset_rf_ns = 0
         self._nco_prop_delay = 0
         if rf_source is not None:
@@ -1331,7 +1331,7 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
                             f'Acquisition start: {t}, RF source start: {t_start}')
         t_start = PulsarConfig.align(t_start)
         # Note: there must be at least 4 ns between pulses.
-        if t_start >= self._pulse_end + 4:
+        if self._pulse_end is None or t_start >= self._pulse_end + 4:
             self._add_pulse_end()
             amp0 = self._rf_amplitude
             # amplitude 1 should be 0.0. It's the Q-component used in IQ modulation.
@@ -1343,14 +1343,14 @@ class AcquisitionSequenceBuilder(SequenceBuilderBase):
         self._pulse_end = t_end
 
     def _add_pulse_end(self):
-        if self._pulse_end > 0:
+        if self._pulse_end is not None:
             t = self._pulse_end
             t = PulsarConfig.align(t)
             amp1 = 0.0 if self._n_out_ch == 2 else None
             # offset command sorting time to be before acquire
             self._add_command(t - 0.01,
                               self.seq.set_offset, 0.0, amp1, t_offset=t)
-            self._pulse_end = -1
+            self._pulse_end = None
 
     def _add_weight(self, weight):
         for index, data in enumerate(self._weights):

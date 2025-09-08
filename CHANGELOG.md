@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.65] - 2025-09-08
+
+- Fixed bug in Qblox acquisition starting at t=0 (introduced in 1.7.57)
+
 ## \[1.7.64] - 2025-08-12
 
 - Fixed trigger latching for conditional pulses with 1 ns resolution on Qblox.
