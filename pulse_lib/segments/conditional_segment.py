@@ -48,9 +48,9 @@ class conditional_segment:
     def __copy__(self):
         pass
 
-#    @property
-#    def channels(self):
-#        return self.branches[0].channels
+    @property
+    def channels(self):
+        return self.branches[0].channels
 
     @property
     def measurements(self):

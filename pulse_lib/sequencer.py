@@ -31,6 +31,11 @@ class sequencer():
     Class to make sequences for segments.
     """
 
+    waveform_cache = "none"
+    """Waveform cache setting: "none", "small", or "big".
+    It turns out that waveform caching costs a lot a memory for a small gain in overall duration.
+    """
+
     def __init__(self, upload_module, digitizer_channels, awg_channels,
                  default_hw_schedule=None):
         '''
@@ -184,8 +189,7 @@ class sequencer():
             self._shape = find_common_dimension(self._shape, seg_container.shape)
             setpoint_data += seg_container.setpoint_data
         logger.debug(f'Pre-render {(time.perf_counter()-start)*1000:.0f} ms')
-        # Set the waveform cache equal to the sum over all channels and segments of the max axis length.
-        # The cache will than be big enough for 1D iterations along every axis. This gives best performance
+
         total_axis_length = 0
         n_samples = 0
         for seg_container in self.sequence:
@@ -200,10 +204,19 @@ class sequencer():
                     for channel_name in branch.channels:
                         shape = branch[channel_name].data.shape
                         total_axis_length += max(shape)
-        # limit cache to 8 GB
-        max_cache = int(1e9 / n_samples)
-        cache_size = min(total_axis_length, max_cache)
-        logger.debug(f'waveform cache: {cache_size} waveforms of max {n_samples} samples')
+        if self.waveform_cache == "small":
+            # cache just big enough for 1 waveform per segment channel, i.e. all waveforms of 1 upload.
+            cache_size = len(self.sequence) * len(self.sequence[0].channels) + 1
+        elif self.waveform_cache == "big":
+            # Set the waveform cache equal to the sum over all channels and segments of the max axis length.
+            # The cache will than be big enough for 1D iterations along every axis. This gives best performance
+            # limit cache to 8 GB
+            max_cache = int(1e9 / n_samples)
+            cache_size = min(total_axis_length, max_cache)
+        else:
+            # No caching
+            cache_size = 0
+        logger.info(f"waveform cache '{self.waveform_cache}': {cache_size} waveforms of max {n_samples} samples")
         parent_data.set_waveform_cache_size(cache_size)
 
         self._setpoints = setpoint_data

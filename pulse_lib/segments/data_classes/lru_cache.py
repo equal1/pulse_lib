@@ -1,25 +1,32 @@
 
 class LruCache:
-    '''
+    """
     Least recently used cache.
+    """
+    hits = 0
+    misses = 0
 
-    Args:
-        max_size (int): maximum number of entries to cache.
-    '''
     def __init__(self, max_size):
+        """Create Least Recently Used cache.
+
+        Args:
+            max_size (int): maximum number of entries to cache.
+        """
         self.max_size = max_size
         # all items in the cache
         self.items = dict()
         # linked list with least recently used entry at the first position.
         self.first = None
         self.last = None
-
+        LruCache.hits = 0
+        LruCache.misses = 0
 
     def __getitem__(self, key):
-        '''
+        """
         Returns the cached item, or an empty cache entry when the item is not yet cached.
-        '''
+        """
         if key in self.items:
+            LruCache.hits += 1
             entry = self.items[key]
             # remove from linked list
             prev = entry.prev
@@ -28,13 +35,13 @@ class LruCache:
             # add to entry end
             self._append(entry)
         else:
+            LruCache.misses += 1
             entry = _LruEntry(key)
             self.items[key] = entry
             self._append(entry)
             self._check_size()
 
         return entry
-
 
     def _link(self, prev, nxt):
         if prev is None:
@@ -47,12 +54,10 @@ class LruCache:
         else:
             nxt.prev = prev
 
-
     def _append(self, entry):
         entry.nxt = None
         self._link(self.last, entry)
         self.last = entry
-
 
     def _check_size(self):
         if len(self.items) <= self.max_size:
@@ -64,9 +69,10 @@ class LruCache:
 
 
 class _LruEntry:
-    '''
+    """
     Entry in last recently used cache.
-    '''
+    """
+
     def __init__(self, key):
         self.prev = None
         self.nxt = None

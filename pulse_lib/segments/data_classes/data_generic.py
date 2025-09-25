@@ -13,13 +13,9 @@ logger = logging.getLogger(__name__)
 
 
 class parent_data(ABC):
-    """
-        Abstract class hosting some functions that take care of rendering and caching of data and
-        makes a template for default functions that are expected in a data object
-    """
     start_time = 0
 
-    waveform_cache = LruCache(100)
+    waveform_cache: LruCache | None = None
 
     def __init__(self):
         self._cache_id = None
@@ -27,11 +23,13 @@ class parent_data(ABC):
 
     @classmethod
     def set_waveform_cache_size(cls, size):
-        '''
+        """
         Set the new (maximum) size of the waveform cache.
         The cache is cleared when its size changes.
-        '''
-        if size != cls.waveform_cache.max_size:
+        """
+        if size <= 0:
+            cls.waveform_cache = None
+        elif cls.waveform_cache is None or size != cls.waveform_cache.max_size:
             cls.waveform_cache = LruCache(size)
 
     @classmethod
@@ -40,7 +38,8 @@ class parent_data(ABC):
         Clears the waveform cache (freeing memory).
         '''
         # clear the cache by initializing a new one of the same size
-        cls.waveform_cache = LruCache(cls.waveform_cache.max_size)
+        if cls.waveform_cache is not None:
+            cls.waveform_cache = LruCache(cls.waveform_cache.max_size)
 
     @property
     def has_data(self):
@@ -97,32 +96,35 @@ class parent_data(ABC):
         raise NotImplementedError()
 
     def render(self, sample_rate=1e9, ref_channel_states=None, LO=None):
-        '''
+        """
         renders pulse
         Args:
             sample_rate (double) : rate at which the AWG will be run
         returns
             pulse (np.ndarray) : numpy array of the pulse
-        '''
-        # Render only when there is no matching cached waveform
-        cache_entry = self._get_cached_data_entry()
-
-        data = cache_entry.data
-        if (data is None
-                or data['sample_rate'] != sample_rate
-                or data['ref_states'] != ref_channel_states
-                or data['LO'] != LO):
-            waveform = self._render(sample_rate, ref_channel_states, LO)
-            cache_entry.data = {
-                'sample_rate': sample_rate,
-                'waveform': waveform,
-                'ref_states': ref_channel_states,
-                'LO': LO
-            }
+        """
+        if self.waveform_cache is None:
+            return self._render(sample_rate, ref_channel_states, LO)
         else:
-            waveform = data['waveform']
+            # Render only when there is no matching cached waveform
+            cache_entry = self._get_cached_data_entry()
 
-        return waveform
+            data = cache_entry.data
+            if (data is None
+                    or data['sample_rate'] != sample_rate
+                    or data['ref_states'] != ref_channel_states
+                    or data['LO'] != LO):
+                waveform = self._render(sample_rate, ref_channel_states, LO)
+                cache_entry.data = {
+                    'sample_rate': sample_rate,
+                    'waveform': waveform,
+                    'ref_states': ref_channel_states,
+                    'LO': LO
+                }
+            else:
+                waveform = data['waveform']
+
+            return waveform
 
     def _get_cached_data_entry(self):
         if self._cache_id is None:

@@ -3,6 +3,10 @@ from pulse_lib.tests.configurations.test_configuration import context
 
 # %%
 import pulse_lib.segments.utility.looping as lp
+from pulse_lib.sequencer import sequencer
+from pulse_lib.segments.data_classes.lru_cache import LruCache
+
+sequencer.waveform_cache = "none"
 
 upload_seq = False
 
@@ -116,6 +120,37 @@ def test_shuttle_n_ch(n_pulses=200):
     return seq
 
 
+def test_shuttle_n_amplitude(n_pulses=200):
+    pulse = context.init_pulselib(n_gates=7, n_qubits=4, n_sensors=2, n_markers=1,
+                                  virtual_gates=True)
+
+    n_pulses = lp.linspace(20, n_pulses, 10, axis=1, name='n_pulses')
+    amplitude = lp.linspace(1, 20, 20, axis=0, name='amplitude')
+
+    s = pulse.mk_segment()
+
+    context.segment = s
+
+    s.update_dim(n_pulses)
+    s.P1.wait(0*amplitude)
+
+    for n, nr in enumerate(n_pulses):
+        seg = s[n]
+        for _ in range(int(nr)):
+            seg.P1.add_ramp_ss(0, 100, -80, 80+amplitude)
+            seg.P1.wait(10)
+            seg.P1.reset_time()
+
+    seq = pulse.mk_sequence([s])
+    if upload_seq:
+        for i in n_pulses:
+            for a in amplitude:
+                seq.amplitude(a)
+                seq.n_pulses(i)
+                seq.upload()
+    return seq
+
+
 # %%
 
 if __name__ == '__main__':
@@ -153,6 +188,17 @@ if __name__ == '__main__':
         print(f'duration 3: {duration*1000:5.0f} ms')
         seq.close()
         time.sleep(duration/2)
+    time.sleep(2)
+    for _ in range(5):
+        LruCache.hits = 0
+        LruCache.misses = 0
+        start = time.perf_counter()
+        seq = test_shuttle_n_amplitude()
+        duration = time.perf_counter() - start
+        print(f'duration 4: {duration*1000:5.0f} ms. hits: {LruCache.hits}, misses: {LruCache.misses}')
+        seq.close()
+        time.sleep(duration/2)
+
 
 # %%
 '''
@@ -247,6 +293,31 @@ duration 3:  1002 ms
 duration 3:   959 ms
 duration 3:  1093 ms
 
+V1.7.59:
+duration 0:   710 ms
+duration 0:   699 ms
+duration 0:   847 ms
+duration 0:   712 ms
+duration 0:   703 ms
+duration 1:  1456 ms
+duration 1:  1473 ms
+duration 1:  1345 ms
+duration 1:  1464 ms
+duration 1:  1522 ms
+duration 2:  1663 ms
+duration 2:  1652 ms
+duration 2:  1685 ms
+duration 2:  1601 ms
+duration 2:  1843 ms
+duration 3:  1113 ms
+duration 3:   962 ms
+duration 3:   928 ms
+duration 3:   925 ms
+duration 3:   914 ms
+
+'''
+# %%
+'''
 =================
 With Qblox upload:
 
@@ -498,5 +569,91 @@ duration 3:  1379 ms
 duration 3:  1272 ms
 duration 3:  1292 ms
 duration 3:  1306 ms
+
+'''
+# %%
+'''
+
+Keysight Mock Upload:
+V1.7.66 - cache none:
+duration 0:  3493 ms
+duration 0:  2718 ms
+duration 0:  2595 ms
+duration 0:  2555 ms
+duration 0:  2480 ms
+duration 1:  3263 ms
+duration 1:  3160 ms
+duration 1:  3149 ms
+duration 1:  3245 ms
+duration 1:  3194 ms
+duration 2:  4417 ms
+duration 2:  4372 ms
+duration 2:  4943 ms
+duration 2:  4461 ms
+duration 2:  4531 ms
+duration 3:  3716 ms
+duration 3:  3656 ms
+duration 3:  3705 ms
+duration 3:  3869 ms
+duration 3:  3835 ms
+duration 4:  1974 ms. hits: 0, misses: 0
+duration 4:  2065 ms. hits: 0, misses: 0
+duration 4:  2293 ms. hits: 0, misses: 0
+duration 4:  2042 ms. hits: 0, misses: 0
+duration 4:  2543 ms. hits: 0, misses: 0
+
+V1.7.66 - cache small:
+duration 0:  2776 ms
+duration 0:  2754 ms
+duration 0:  2615 ms
+duration 0:  2735 ms
+duration 0:  2543 ms
+duration 1:  3229 ms
+duration 1:  3075 ms
+duration 1:  3377 ms
+duration 1:  3145 ms
+duration 1:  3227 ms
+duration 2:  4441 ms
+duration 2:  4849 ms
+duration 2:  4382 ms
+duration 2:  4555 ms
+duration 2:  4400 ms
+duration 3:  3798 ms
+duration 3:  3975 ms
+duration 3:  3746 ms
+duration 3:  3668 ms
+duration 3:  3828 ms
+duration 4:  1991 ms. hits: 1900, misses: 300
+duration 4:  2090 ms. hits: 1900, misses: 300
+duration 4:  1993 ms. hits: 1900, misses: 300
+duration 4:  2042 ms. hits: 1900, misses: 300
+duration 4:  1984 ms. hits: 1900, misses: 300
+
+V1.7.66 - cache big:
+duration 0:  2940 ms
+duration 0:  2819 ms
+duration 0:  2855 ms
+duration 0:  2723 ms
+duration 0:  2485 ms
+duration 1:  3639 ms
+duration 1:  3245 ms
+duration 1:  3203 ms
+duration 1:  3264 ms
+duration 1:  3206 ms
+duration 2:  4711 ms
+duration 2:  4346 ms
+duration 2:  4621 ms
+duration 2:  4791 ms
+duration 2:  4571 ms
+duration 3:  3650 ms
+duration 3:  3833 ms
+duration 3:  3614 ms
+duration 3:  4204 ms
+duration 3:  3676 ms
+duration 4:  2074 ms. hits: 1900, misses: 300
+duration 4:  2101 ms. hits: 1900, misses: 300
+duration 4:  1956 ms. hits: 1900, misses: 300
+duration 4:  2208 ms. hits: 1900, misses: 300
+duration 4:  1969 ms. hits: 1900, misses: 300
 
 '''
