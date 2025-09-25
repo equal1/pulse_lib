@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.66] - 2025-09-25
+
+- Disabled waveform caching, because the speed gain is minimal and the memory usage is big.
+
 ## \[1.7.65] - 2025-09-08
 
 - Fixed bug in Qblox acquisition starting at t=0 (introduced in 1.7.57)
