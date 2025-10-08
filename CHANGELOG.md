@@ -1,7 +1,7 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
-## \[1.7.67] - @@@@@@
+## \[1.7.67] - 2025-10-08
 
 - Fixed gain after conditional pulse. In rare cases the gain was incorrect.
 - Fixed sine interpolation with start/end time not being integers.
