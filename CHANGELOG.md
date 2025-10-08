@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.67] - @@@@@@
+
+- Fixed gain after conditional pulse. In rare cases the gain was incorrect.
+- Fixed sine interpolation with start/end time not being integers.
+
 ## \[1.7.66] - 2025-09-25
 
 - Disabled waveform caching, because the speed gain is minimal and the memory usage is big.
