@@ -217,6 +217,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         self._v_end = None
         self._constant_end = False
         self._t_constant = 0
+        self._equal_voltage = False
         # keep track of the last RT command. There must be 0 or >= 4 ns between the commands.
         self._last_rt_cmd = 0
 
