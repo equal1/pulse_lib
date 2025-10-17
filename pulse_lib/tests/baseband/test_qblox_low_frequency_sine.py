@@ -17,6 +17,8 @@ def test1():
     s = pulse.mk_segment(hres=hres)
     segments.append(s)
 
+    s.wait(0.2, reset_time=True)
+
     s.P1.add_sin(50, 1050, 1000, 1.0e6)
 
     s.P2.add_block(20, 1100, 100)
@@ -134,7 +136,7 @@ if __name__ == '__main__':
     from pulse_lib.qblox import QbloxConfig
     from pulse_lib.qblox.pulsar_sequencers import SequenceBuilderBase
     QbloxConfig.sine_interpolation_step = 40
-    # SequenceBuilderBase.verbose = True
+    SequenceBuilderBase.verbose = True
     QbloxConfig.double_path_encoding = False
 
     test1()
