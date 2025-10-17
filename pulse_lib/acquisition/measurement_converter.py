@@ -101,7 +101,8 @@ class MeasurementParameter(MultiParameter):
                           time_trace=False,
                           sample_rate=None,
                           setpoints=None, setpoint_units=None,
-                          setpoint_labels=None, setpoint_names=None):
+                          setpoint_labels=None, setpoint_names=None,
+                          accepted_only: bool = False):
         '''
         Create a parameter that is derived from a trace (such as an
         average). Input of the function is the array of channels that
@@ -119,6 +120,7 @@ class MeasurementParameter(MultiParameter):
             setpoint_units (Optional[np.ndarray]): setpoint units
             setpoint_labels (Optional[np.ndarray]): setpoint labels
             setpoint_names (Optional[np.ndarray]): setpoint names
+            accepted_only: only pass accepted data to func.
         '''
         if label is None:
             label = name
@@ -165,6 +167,7 @@ class MeasurementParameter(MultiParameter):
             self.setpoint_labels = self.setpoint_labels + (setpoints.setpoint_labels,)
             self.setpoint_units = self.setpoint_units + (setpoints.setpoint_units,)
         else:
+            add_repetitions = False
             if setpoint_labels and setpoint_names and setpoint_units:
                 self.setpoints = self.setpoints + (setpoints,)
                 self.setpoint_names = self.setpoint_names + (setpoint_names,)
@@ -173,7 +176,7 @@ class MeasurementParameter(MultiParameter):
             else:
                 raise Exception('Setpoint names, units and labels are also required when specifying setpoints')
 
-        self._derived_params[name] = func
+        self._derived_params[name] = (func, accepted_only, add_repetitions)
         self.names += (name,)
         self.shapes += (dp_shape,)
         self.units += (unit,)
@@ -205,12 +208,7 @@ class MeasurementParameter(MultiParameter):
             accepted_only (bool): if True only count accepted shots
         '''
         def _histogram(data):
-            if accepted_only:
-                if 'mask' not in data:
-                    raise Exception('Cannot filter on accepted. Accept mask is not in data.')
-                d = data[m_name][data['mask'].astype(bool)]
-            else:
-                d = data[m_name]
+            d = data[m_name]
             return np.histogram(d, bins=binedges)[0]/d.shape[0]
 
         binedges = np.linspace(range[0], range[1], bins+1)
@@ -224,7 +222,57 @@ class MeasurementParameter(MultiParameter):
             setpoints=setpoints,
             setpoint_units=('mV',),
             setpoint_names=setpoint_names,
-            setpoint_labels=setpoint_names)
+            setpoint_labels=setpoint_names,
+            accepted_only=accepted_only)
+
+    def add_qubit_register(self, name: str, m_names: list[str], label: str | None = None, accepted_only: bool = True):
+        '''
+        Creates qubit register for specified measurements.
+
+        The suffix "_state" is automatically appended to all measurement names.
+
+        Args:
+            name: name of register, e.g. "q0123"
+            m_names: names of qubit measurements in sequence.
+            accepted_only: if True only count accepted shots
+        '''
+        def _register(data):
+            qubit_states = [data[name+"_state"].astype(int) for name in m_names]
+            register = qubit_states[0]
+            for qs in qubit_states[1:]:
+                register = (register << 1) + qs
+            return qs
+
+        def _fractions(data):
+            qubit_states = data[name+"_state"].astype(int)
+            counts = np.bincount(qubit_states, minlength=n_states)
+            return counts / np.sum(counts)
+
+        n_states = 2**len(m_names)
+
+        setpoints = SetpointsSingle(name, label, "")
+        setpoints.append(np.arange(n_states), "state", "qubit register state", "|..>")
+
+        n_rep = self._mc.n_rep
+        setpoints.append(np.arange(n_rep), 'repetition', 'repetition', '')
+
+        self.add_derived_param(
+            name+"_state",
+            _register,
+            label=label,
+            unit='')
+
+        setpoints = (tuple(np.arange(n_states)),)
+        setpoint_names = ('states',)
+        self.add_derived_param(
+            name+"_fraction",
+            _fractions,
+            unit='',
+            setpoints=setpoints,
+            setpoint_units=('|..>',),
+            setpoint_names=setpoint_names,
+            setpoint_labels=setpoint_names,
+            accepted_only=accepted_only)
 
     def get_raw(self):
         data = self._source.get_channel_data()
@@ -232,12 +280,32 @@ class MeasurementParameter(MultiParameter):
         self._mc.set_channel_data(data, index)
 
         data = self._mc.get_measurement_data(self._data_selection)
+        masked_data = None
+        mask = None
 
         if len(self._derived_params) > 0:
             # TODO use custom dict that raise a more useful exception instead of KeyError.
             data_map = {name: values for name, values in zip(self.names, data)}
-            for name, dp in self._derived_params.items():
-                dp_data = dp(data_map)
+            for name, (dp, accepted_only, add_repetitions) in self._derived_params.items():
+                if accepted_only and 'mask' in data_map:
+                    if masked_data is None:
+                        mask = data_map['mask'].astype(bool)
+                        masked_data = {}
+                        for i, (name, d) in enumerate(data_map.items()):
+                            if self.setpoint_names[i][:1] == ("repetitions", ):
+                                masked_data[name] = d[mask]
+                            else:
+                                masked_data[name] = d
+                    dp_data = dp(masked_data)
+                    masked_data[name] = dp_data
+                    if add_repetitions:
+                        dp_shape = self.shapes[len(data)]
+                        dp_data_with_nans = np.full(dp_shape, np.nan)
+                        dp_data_with_nans[mask] = dp_data
+                        dp_data = dp_data_with_nans
+                else:
+                    dp_data = dp(data_map)
+
                 data.append(dp_data)
                 data_map[name] = dp_data
 
