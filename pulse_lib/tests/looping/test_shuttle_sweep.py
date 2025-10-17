@@ -388,8 +388,35 @@ duration 3: 19838 ms
 duration 3: 22730 ms
 duration 3: 22625 ms
 
+V1.7.68:
+duration 0: 18670 ms
+duration 0: 17833 ms
+duration 0: 17113 ms
+duration 0: 18430 ms
+duration 0: 17199 ms
+duration 1: 20287 ms
+duration 1: 20815 ms
+duration 1: 19173 ms
+duration 1: 36582 ms
+duration 1: 27149 ms
+duration 2: 26987 ms
+duration 2: 21184 ms
+duration 2: 21152 ms
+duration 2: 21548 ms
+duration 2: 20608 ms
+duration 3: 20457 ms
+duration 3: 22042 ms
+duration 3: 20587 ms
+duration 3: 20066 ms
+duration 3: 21208 ms
+duration 4:  3821 ms. hits: 0, misses: 0
+duration 4:  3771 ms. hits: 0, misses: 0
+duration 4:  3732 ms. hits: 0, misses: 0
+duration 4:  3892 ms. hits: 0, misses: 0
+duration 4:  4281 ms. hits: 0, misses: 0
 '''
 
+# %%
 '''
 V1.6.31:
 duration 1:  4897 ms
