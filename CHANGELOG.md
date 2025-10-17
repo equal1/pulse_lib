@@ -1,6 +1,11 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.68] - 2025-10-17
+
+- Added conversion of measurements to qubit register to measurement parameter.
+- Added accepted only to `measurement_parameter.add_derived_param`.
+
 ## \[1.7.67] - 2025-10-08
 
 - Fixed gain after conditional pulse. In rare cases the gain was incorrect.
