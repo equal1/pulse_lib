@@ -421,7 +421,7 @@ class QsUploader:
                         enable = rf_source.mode == 'continuous'
                         awg.config_lo(awg_ch, osc_num, enable, channel_conf.frequency, amplitude)
 
-    def _get_hvi_params(self, job):
+    def _get_hvi_params(self, job, active_sequencers):
         hvi_params = job.schedule_params.copy()
         if not QsUploader.use_digitizer_sequencers:
             hvi_params.update(
@@ -441,9 +441,8 @@ class QsUploader:
                  })
 
         for awg_name, awg in self.AWGs.items():
-            hvi_params[f'use_awg_sequencers_{awg_name}'] = (
-                (QsUploader.use_iq_sequencers or QsUploader.use_baseband_sequencers)
-                and hasattr(awg, 'get_sequencer'))
+            hvi_params[f'use_awg_sequencers_{awg_name}'] = hasattr(awg, 'get_sequencer')
+            hvi_params[f'enabled_sequencers_{awg_name}'] = active_sequencers[awg_name]
 
         for dig_name, dig in self.digitizers.items():
             hvi_params[f'use_digitizer_sequencers_{dig_name}'] = (
@@ -581,6 +580,7 @@ class QsUploader:
                 awg.set_channel_offset(offset/1000, channel_number)
 
         start = time.perf_counter()
+        active_sequencers = defaultdict(list)
         for awg_sequencer in self.sequencer_channels.values():
             if continuous_mode:
                 raise Exception('QS sequencers cannot be used in continuous mode. '
@@ -592,6 +592,7 @@ class QsUploader:
             schedule = []
             if channel_name in job.iq_sequences:
                 t1 = time.perf_counter()
+                active_sequencers[awg_sequencer.module_name].append(awg_sequencer.sequencer_index)
                 sequence = job.iq_sequences[awg_sequencer.channel_name]
 
                 # TODO move NCO frequency to iq_sequence object
@@ -642,6 +643,7 @@ class QsUploader:
 
             if rf_sequencer.channel_name in job.rf_sequences:
                 t1 = time.perf_counter()
+                active_sequencers[rf_sequencer.module_name].append(rf_sequencer.sequencer_index)
                 dig_ch = self.digitizer_channels[rf_sequencer.channel_name[:-3]]
                 sequence = job.rf_sequences[rf_sequencer.channel_name]
 
@@ -711,7 +713,7 @@ class QsUploader:
         self._configure_rf_oscillators(job)
 
         # start hvi (start function loads schedule if not yet loaded)
-        schedule_params = self._get_hvi_params(job)
+        schedule_params = self._get_hvi_params(job, active_sequencers)
         job.hw_schedule.set_configuration(schedule_params, job.n_waveforms)
         n_rep = job.n_rep if job.n_rep else 1
         run_duration = n_rep * job.playback_time * 1e-9 + 0.1
