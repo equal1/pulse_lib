@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.69] - 2025-10-22
+
+- Explicitly enable used QS sequencers for Keysight.
+
 ## \[1.7.68] - 2025-10-17
 
 - Added conversion of measurements to qubit register to measurement parameter.
