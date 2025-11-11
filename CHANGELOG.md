@@ -1,6 +1,20 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.69] - 2025-10-22
+
+- Explicitly enable used QS sequencers for Keysight.
+
+## \[1.7.68] - 2025-10-17
+
+- Added conversion of measurements to qubit register to measurement parameter.
+- Added accepted only to `measurement_parameter.add_derived_param`.
+
+## \[1.7.67] - 2025-10-08
+
+- Fixed gain after conditional pulse. In rare cases the gain was incorrect.
+- Fixed sine interpolation with start/end time not being integers.
+
 ## \[1.7.66] - 2025-09-25
 
 - Disabled waveform caching, because the speed gain is minimal and the memory usage is big.

@@ -302,7 +302,7 @@ class Context:
                     pulse.set_digitizer_rf_source(sensor,
                                                   output=params['output'],
                                                   amplitude=params['amplitude'],
-                                                  mode='continuous',
+                                                  mode='pulsed',
                                                   startup_time_ns=params['startup_time'],
                                                   prolongation_ns=params.get('prolongation_time', 0))
                 else:

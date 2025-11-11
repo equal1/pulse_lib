@@ -217,6 +217,7 @@ class VoltageSequenceBuilder(SequenceBuilderBase):
         self._v_end = None
         self._constant_end = False
         self._t_constant = 0
+        self._equal_voltage = False
         # keep track of the last RT command. There must be 0 or >= 4 ns between the commands.
         self._last_rt_cmd = 0
 
@@ -641,8 +642,9 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
         if t_start >= self._interpolate.start and t_stop <= self._interpolate.stop:
             if self._linear_interpolations is None:
                 # Start at least 4 ns after last rt command
-                intp_start = max(PulsarConfig.ceil(self._interpolate.start), self._last_rt_cmd + 4)
-                intp_end = PulsarConfig.floor(self._interpolate.stop)
+                # TODO: to support hres the rounding must be ceil and floor for start/end. (Nasty details here..)
+                intp_start = max(PulsarConfig.align(self._interpolate.start), self._last_rt_cmd + 4)
+                intp_end = PulsarConfig.align(self._interpolate.stop)
                 self._linear_interpolations = [
                     LinearInterpolation(start, start + self._interpolation_step)
                     for start in range(intp_start, intp_end-self._interpolation_step+1, self._interpolation_step)
@@ -1042,6 +1044,8 @@ class IQSequenceBuilder(SequenceBuilderBase):
         self.seq.exit_condition(PulsarConfig.ceil(self.t_end))
         # reset end time
         self.t_end = t_condition_start
+        # After the condition the current gain is unknown. It could have changed or not.
+        self._current_gain = None
 
     def _insert_markers(self, t):
         '''
