@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to Pulselib will be documented in this file.
 
+## \[1.7.70] - 2025-11-14
+
+- Fixed reset of condition for first measurement on Qblox.
+
 ## \[1.7.69] - 2025-10-22
 
 - Explicitly enable used QS sequencers for Keysight.
