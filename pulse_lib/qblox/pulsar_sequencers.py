@@ -639,7 +639,8 @@ class InterpolatingVoltageSequenceBuilder(VoltageSequenceBuilder):
     def interpolate(self, t_start, t_stop) -> list[LinearInterpolation]:
         if self._interpolate is None:
             return []
-        if t_start >= self._interpolate.start and t_stop <= self._interpolate.stop:
+        # Note: [t_start, t_stop] must be in interpolation interval and not have duration <= 0.
+        if t_start >= self._interpolate.start and t_stop <= self._interpolate.stop and t_start < t_stop:
             if self._linear_interpolations is None:
                 # Start at least 4 ns after last rt command
                 # TODO: to support hres the rounding must be ceil and floor for start/end. (Nasty details here..)

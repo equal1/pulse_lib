@@ -504,8 +504,9 @@ class Job(object):
             if t != last_t and (len(latching_counters) > 0) != latching_enabled:
                 latching_enabled = len(latching_counters) > 0
                 if not latch_events:
-                    # disable all latches at start of sequence
+                    # disable all latches at start of sequence and reset latches.
                     latch_events.append(LatchEvent(0, enable=False))
+                    latch_events.append(LatchEvent(4, reset=True))
                 latch_events.append(LatchEvent(last_t, enable=latching_enabled))
             last_t = t
             if action == 'latch-enable':
